@@ -1,3 +1,34 @@
+"""
+This module defines two neural network architectures based on the ResNet model with Feature Pyramid Networks (FPN), 
+namely `ResNetFPN_8_2` and `ResNetFPN_16_4`, and a basic building block for these networks named `BasicBlock`. 
+
+The `BasicBlock` class serves as a foundational component for building deeper network architectures. It consists of 
+two convolutional layers, each followed by batch normalization and ReLU activation, and an optional downsampling layer 
+to adjust the dimensions when the stride differs from 1. This block forms the building block of the ResNet-based models.
+
+The `ResNetFPN_8_2` class implements a ResNet-FPN architecture where the output resolutions are 1/8 and 1/2 of the 
+input resolution. This architecture is designed for tasks requiring feature maps at different scales, providing both 
+coarse and fine feature representations. The network includes an initial convolutional layer, followed by a series of 
+downsampling layers to reduce spatial resolution and increase channel dimensions, and then upsampling layers to 
+combine features at different scales.
+
+Similarly, the `ResNetFPN_16_4` class is another variant of the ResNet-FPN architecture, with output resolutions of 
+1/16 and 1/4 of the input resolution. This architecture follows a similar pattern but extends the downsampling further 
+to provide an even coarser feature map compared to `ResNetFPN_8_2`.
+
+Both `ResNetFPN_8_2` and `ResNetFPN_16_4` classes include detailed documentation of the forward pass and tensor 
+dimension relationships, providing insights into the internal workings of these architectures. Additionally, they 
+contain methods to log tensor dimensions at different stages of the network, aiding in understanding and debugging.
+
+This module is designed to be used in image matching tasks, particularly for the LoFTR model.
+
+Dependencies:
+    - typing
+    - torch
+    - torch.nn
+    - torch.nn.functional
+"""
+
 from typing import List, Dict
 from torch import nn
 import torch.nn.functional as F
@@ -68,20 +99,24 @@ class BasicBlock(nn.Module):
 
     def forward(self, x):
         """
-        Defines the forward pass of the BasicBlock.
+        Forward pass for the BasicBlock.
 
-        The input tensor is processed through two convolutional layers
-        (each followed by batch normalization and ReLU activation).
-        If downsampling is required (when stride is not 1), it is applied to the input
-        tensor before the final addition with the output of the second layer.
+        This method processes the input tensor through a sequence of operations involving two main convolutional 
+        layers. Each convolutional layer is followed by batch normalization and a ReLU activation function. 
+        Additionally, if the stride is set to a value other than 1, a downsampling step is applied to the input 
+        tensor. This downsampling is necessary to match the spatial dimensions for a subsequent element-wise 
+        addition operation with the output of the second convolutional layer.
 
-        Args:
-            x (Tensor): The input tensor to the BasicBlock: (N, in_channels, H, W).
+        Parameters:
+        x (Tensor): The input tensor to the BasicBlock. The expected shape of the tensor is (N, in_channels, H, W),
+                    where N is the batch size, in_channels is the number of input channels, and H and W are the 
+                    height and width of the input.
 
         Returns:
-            Tensor: The output tensor after processing through the BasicBlock.
+        Tensor: The output tensor of the BasicBlock after processing. The output retains the same batch size (N) 
+                and has potentially altered channel dimensions and spatial dimensions depending on the stride and 
+                downsampling operations.
         """
-
         y = x
 
         # First layer
@@ -90,6 +125,7 @@ class BasicBlock(nn.Module):
         # Second layer
         y = self.bn2(self.conv2(y))
 
+        # Downsampling if stride is not 1 -> match dimensions for element-wise addition
         if self.downsample is not None:
             x = self.downsample(x)
 
@@ -228,10 +264,46 @@ class ResNetFPN_8_2(nn.Module):
 
         return nn.Sequential(*layers)
 
+    def log_tensor_dimensions(self, tensor_info: Dict[str, torch.Tensor]):
+        """
+        Logs the dimensions of the tensors in the ResNetFPN_8_2 network.
+
+        Args:
+            tensor_info (Dict[str, torch.Tensor]): A dictionary where keys are tensor descriptions
+            and values are the tensors.
+        """
+
+        for desc, tensor in tensor_info.items():
+            print(f"{desc}: {tensor.shape}")
+
+        print("\nTensor Dimension Relationships:")
+        print(
+            "x0: Output of the initial convolution, batch normalization, and ReLU applied to the input."
+        )
+        print(
+            "x1: Output of layer1, representing features at 1/2 of the input resolution."
+        )
+        print("x2: Output of layer2, downsampled to 1/4 of the input resolution.")
+        print(
+            "x3: Output of layer3, further downsampled to 1/8 of the input resolution."
+        )
+        print("x3_out: Coarse features at 1/8 resolution, output of layer3_outconv.")
+        print(
+            "x3_out_2x: Upsampled version of x3_out to match the resolution of x2 (1/4 of the input)."
+        )
+        print(
+            "x2_out: Combines upsampled coarse features (x3_out_2x) with the output of layer2, then processed for feature fusion."
+        )
+        print(
+            "x2_out_2x: Upsampled version of x2_out to match the resolution of x1 (1/2 of the input)."
+        )
+        print(
+            "x1_out: Final output, combining features from x1 and upsampled x2_out_2x, representing fine features at 1/2 input resolution."
+        )
+
     def forward(self, x):
         """
         Forward pass of the ResNetFPN_8_2 model.
-
         Processes the input through a series of convolutional layers, batch normalization, and ReLU activations,
         along with downsampling and upsampling layers to produce feature maps at different scales.
 
@@ -273,6 +345,21 @@ class ResNetFPN_8_2(nn.Module):
 
         x1_out = self.layer1_outconv1(x1)
         x1_out = self.layer1_outconv2(x1_out + x2_out_2x)  # (n, _, H/2, W/2)
+
+        if self.verbose:
+            tensor_info = {
+                "x (Input Tensor)": x,
+                "x0 (Initial Convolution Output)": x0,
+                "x1 (Layer 1 Output)": x1,
+                "x2 (Layer 2 Output)": x2,
+                "x3 (Layer 3 Output)": x3,
+                "x3_out (Layer 3 OutConv Output)": x3_out,
+                "x3_out_2x (Upsampled x3_out)": x3_out_2x,
+                "x2_out (Layer 2 OutConv Output)": x2_out,
+                "x2_out_2x (Upsampled x2_out)": x2_out,
+                "x1_out (Layer 1 OutConv Output)": x1_out,
+            }
+            self.log_tensor_dimensions(tensor_info=tensor_info)
 
         return x3_out, x1_out
 
@@ -428,11 +515,9 @@ class ResNetFPN_16_4(nn.Module):
             "x1 to x4 are progressively downsampled features, reducing spatial dimensions while increasing channels."
         )
         print(
-            "x4_out is the processed output of x4, which is then upsampled to x4_out_2x."
+            "x4_out (coarse features) is the processed output of x4, which is then upsampled to x4_out_2x."
         )
-        print(
-            "x3_out combines features from x3 and x4_out_2x, providing coarse features."
-        )
+        print("x3_out combines features from x3 and x4_out_2x.")
         print(
             "x3_out_2x is an upsampled version of x3_out, aligning its dimensions with x2 for feature fusion."
         )
@@ -467,12 +552,12 @@ class ResNetFPN_16_4(nn.Module):
         x3 = self.layer3(x2)  # (n, _, H/8, W/8)
         x4 = self.layer4(x3)
 
+        # Coarse features
         x4_out = self.layer4_outconv(x4)
         x4_out_2x = F.interpolate(
             x4_out, scale_factor=2.0, mode="bilinear", align_corners=True
         )
 
-        # Coarse features
         x3_out = self.layer3_outconv1(x3)  # (n, _, H/8, W/8)
         x3_out = self.layer3_outconv2(x3_out + x4_out_2x)
 
@@ -499,6 +584,6 @@ class ResNetFPN_16_4(nn.Module):
                 "x3_out_2x (Upsampled x3_out)": x3_out_2x,
                 "x2_out (Layer 2 OutConv Output)": x2_out,
             }
-            self.log_tensor_dimensions(tensor_info)
+            self.log_tensor_dimensions(tensor_info=tensor_info)
 
         return x4_out, x2_out
