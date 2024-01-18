@@ -101,20 +101,20 @@ class BasicBlock(nn.Module):
         """
         Forward pass for the BasicBlock.
 
-        This method processes the input tensor through a sequence of operations involving two main convolutional 
-        layers. Each convolutional layer is followed by batch normalization and a ReLU activation function. 
-        Additionally, if the stride is set to a value other than 1, a downsampling step is applied to the input 
-        tensor. This downsampling is necessary to match the spatial dimensions for a subsequent element-wise 
+        This method processes the input tensor through a sequence of operations involving two main convolutional
+        layers. Each convolutional layer is followed by batch normalization and a ReLU activation function.
+        Additionally, if the stride is set to a value other than 1, a downsampling step is applied to the input
+        tensor. This downsampling is necessary to match the spatial dimensions for a subsequent element-wise
         addition operation with the output of the second convolutional layer.
 
         Parameters:
         x (Tensor): The input tensor to the BasicBlock. The expected shape of the tensor is (N, in_channels, H, W),
-                    where N is the batch size, in_channels is the number of input channels, and H and W are the 
+                    where N is the batch size, in_channels is the number of input channels, and H and W are the
                     height and width of the input.
 
         Returns:
-        Tensor: The output tensor of the BasicBlock after processing. The output retains the same batch size (N) 
-                and has potentially altered channel dimensions and spatial dimensions depending on the stride and 
+        Tensor: The output tensor of the BasicBlock after processing. The output retains the same batch size (N)
+                and has potentially altered channel dimensions and spatial dimensions depending on the stride and
                 downsampling operations.
         """
         y = x
@@ -167,7 +167,12 @@ class ResNetFPN_8_2(nn.Module):
         initial_dimension = block_dimensions[0]
 
         self.conv1 = nn.Conv2d(
-            1, initial_dimension, kernel_size=7, stride=2, padding=3, bias=False
+            1,
+            initial_dimension,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
         )
         self.bn1 = nn.BatchNorm2d(initial_dimension)
         self.relu = nn.ReLU(inplace=True)
@@ -399,7 +404,12 @@ class ResNetFPN_16_4(nn.Module):
 
         initial_dimension = block_dimensions[0]
         self.conv1 = nn.Conv2d(
-            1, initial_dimension, kernel_size=7, stride=2, padding=3, bias=False
+            1,
+            initial_dimension,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
         )
         self.bn1 = nn.BatchNorm2d(initial_dimension)
         self.relu = nn.ReLU(inplace=True)

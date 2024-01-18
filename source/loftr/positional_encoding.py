@@ -93,7 +93,9 @@ class PositionalEncoding(nn.Module):
 
         # Register the PE tensor as a buffer in the module (not a model parameter)
         self.register_buffer(
-            "positional_encoding", positional_encoding.unsqueeze(0), persistent=False
+            "positional_encoding",
+            positional_encoding.unsqueeze(0),
+            persistent=False,
         )  # Add a batch dimension [1, C, H, W]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
