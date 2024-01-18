@@ -1,16 +1,25 @@
 import torch
+from typing import Tuple
 
-def generate_keypoints_for_every_pixel(image_shape):
+
+def generate_image_grid_coordinates(image_dimensions: Tuple[int, int]) -> torch.Tensor:
     """
-    Generate keypoints for every pixel in an image.
+    Generate a 3D grid of pixel coordinates for an image, maintaining the image shape.
+
+    This function creates a grid of (x, y) coordinates corresponding to each pixel location in an image,
+    and arranges them in a 3D tensor that mirrors the image's dimensions.
 
     Parameters:
-    - image_shape: A tuple representing the shape of the image (height, width).
+    - image_dimensions (tuple): A tuple representing the dimensions of the image (height, width).
 
     Returns:
-    - keypoints: A torch tensor of shape (height*width, 2), where each row is the (x, y) coordinate of a pixel.
+    - grid_coordinates (torch.Tensor): A tensor of shape (height, width, 2), where each element [i, j]
+                                       contains the (x, y) coordinates of the pixel at position (i, j) in the image.
     """
-    height, width = image_shape
-    y_coords, x_coords = torch.meshgrid(torch.arange(height), torch.arange(width))
-    keypoints = torch.stack((x_coords.reshape(-1), y_coords.reshape(-1)), dim=1)
-    return keypoints
+    height, width = image_dimensions
+    y_coordinates, x_coordinates = torch.meshgrid(
+        torch.arange(height), torch.arange(width), indexing="ij"
+    )
+    grid_coordinates = torch.stack((x_coordinates, y_coordinates), dim=2)
+
+    return grid_coordinates.float()
