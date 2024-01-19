@@ -1,6 +1,19 @@
 import torch
 from typing import Tuple
 
+def crop_image(image: torch.Tensor, crop_position: torch.Tensor, crop_size: int) -> torch.Tensor:
+    """
+    Crop an image.
+
+    Args:
+        image (torch.Tensor): Image of shape (C, H, W) to be cropped.
+        crop_position (torch.Tensor): Position of the crop - top left corner in coordinates (x, y).
+        crop_size (int): Size of the crop.
+
+    Returns:
+        torch.Tensor: Cropped image.
+    """
+    return image[:, crop_position[1]:crop_position[1]+crop_size, crop_position[0]:crop_position[0]+crop_size]
 
 def _get_transformed_image_corner_positions(
     grid_coordinates_transformed: torch.Tensor,
