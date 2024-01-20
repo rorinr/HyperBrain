@@ -148,9 +148,9 @@ def sample_crop_coordinates(
     in the transformed image for variability.
 
     Args:
-        crop_size (int): The size of the square crop.
-        coordinate_mapping (torch.Tensor):  A grid mapping each pixel from image_1 (index) 
+        coordinate_mapping (torch.Tensor):  A grid mapping each pixel from image_1 (index)
                                             to its corresponding location in image_2 (value).
+        crop_size (int): The size of the square crop.
         max_translation_shift (int): The maximum translation shift applied to the crop position in the
                                      transformed image.
 
@@ -202,7 +202,6 @@ def sample_crop_coordinates(
         max_translation_shift,
     )
 
-    print(f"crop_position_min_x: {crop_position_min_x}, crop_position_max_x: {crop_position_max_x}, crop_position_min_y: {crop_position_min_y}, crop_position_max_y: {crop_position_max_y}")
     # Check if sampling space is valid
     assert (
         crop_position_min_x + 1 <= crop_position_max_x
@@ -212,26 +211,43 @@ def sample_crop_coordinates(
     ), "crop_position_min_y > crop_position_max_y"
 
     # Mask for valid crop positions of transformed image
-    mask_x = (coordinate_mapping[:, :, 0] >= crop_position_min_x) & (coordinate_mapping[:, :, 0] <= crop_position_max_x)
-    mask_y = (coordinate_mapping[:, :, 1] >= crop_position_min_y) & (coordinate_mapping[:, :, 1] <= crop_position_max_y)
-    mask = mask_x & mask_y
+    mask_x = (coordinate_mapping[:, :, 0] >= crop_position_min_x) & (
+        coordinate_mapping[:, :, 0] <= crop_position_max_x
+    )  # X positions in range
+    mask_y = (coordinate_mapping[:, :, 1] >= crop_position_min_y) & (
+        coordinate_mapping[:, :, 1] <= crop_position_max_y
+    )  # Y positions in range
 
-    # Mask holds valid positions in coordinate_mapping. 
-    # Sample one of this positions randomly.
-    valid_indices = mask.nonzero()
-    sampled_index = torch.randint(0, valid_indices.shape[0], (1,))[0]
+    # Combine the masks -> An element of mask is True if the corresponding element
+    # in coordinate_mapping is a valid crop position
+    mask = (
+        mask_x & mask_y
+    )
 
-    # Get the crop position in the original image
-    crop_position_image_1 = valid_indices[sampled_index]
+    true_indices = torch.nonzero(
+        mask
+    ).squeeze()  # Indices of the valid keypoints (that are true in mask) in the image_coordinate_mapping
 
-    # Get the crop position in the transformed image
-    crop_position_image_2 = coordinate_mapping[crop_position_image_1[1], crop_position_image_1[0]]
-    crop_position_image_2 = crop_position_image_2.long()
+    # Choose a random valid crop position
+    random_index = torch.randint(0, len(true_indices), (1,)).item()
 
-    # Apply a random shift to the crop position in the transformed image
-    # crop_position_image_2 += torch.randint(-max_translation_shift, max_translation_shift + 1, (2,))
+    # Use sampled_index to index into true_indices and find the corresponding crop positions
+    crop_position_image_1 = (
+        true_indices[random_index, 1].item(),
+        true_indices[random_index, 0].item(),
+    )  # The crop position in the original image is the same as the index in the image_coordinate_mapping
+    crop_position_image_2 = coordinate_mapping[
+        true_indices[random_index, 0], true_indices[random_index, 1]
+    ]
 
-    return crop_position_image_1, crop_position_image_2  
+    # Use max_ranodm_offset to shift the crop position in the transformed image 
+    # -> makes sure that top left corner of crop is not always the same
+    crop_position_image_2 += torch.randint(
+        -max_translation_shift, max_translation_shift, (2,)
+    )
+
+    return crop_position_image_1, crop_position_image_2.long()
+
 
 def create_crop_coordinate_mapping(
     image_coordinate_mapping: torch.Tensor,
