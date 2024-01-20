@@ -2,11 +2,13 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Tuple
+import matplotlib.patches as patches
+
 
 def plot_images_with_matches(
     image_1: torch.Tensor,
     image_2: torch.Tensor,
-    grid_coordinates_transformed: torch.Tensor,
+    coordinate_mapping: torch.Tensor,
     number_of_matches: int,
     sample_keypoints_randomly: bool = False,
 ) -> None:
@@ -21,8 +23,8 @@ def plot_images_with_matches(
     Args:
         image_1 (torch.Tensor): The first image tensor of shape [C, H, W].
         image_2 (torch.Tensor): The second image tensor of the same shape as image_1.
-        grid_coordinates_transformed (torch.Tensor): Tensor of transformed grid
-                                                     coordinates, shape [H, W, 2].
+        coordinate_mapping (torch.Tensor): coordinate_mapping (torch.Tensor): A grid mapping each pixel from image
+        _1 (index) to its corresponding location in image_2 (value).
         number_of_matches (int): Number of matches to plot.
         sample_keypoints_randomly (bool): If True, keypoints are chosen randomly. Default is False.
 
@@ -46,7 +48,7 @@ def plot_images_with_matches(
 
     # Loop over sampled keypoints
     for y, x in zip(y_coords, x_coords):
-        transformed_x, transformed_y = grid_coordinates_transformed[y, x]
+        transformed_x, transformed_y = coordinate_mapping[y, x]
 
         # Draw lines only for points within the image boundaries
         if 0 <= transformed_x < width and 0 <= transformed_y < height:
@@ -57,17 +59,14 @@ def plot_images_with_matches(
     # Show the plot
     plt.show()
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import torch
 
 def plot_image_with_crop(
-    original_image: torch.Tensor, 
-    crop_image: torch.Tensor, 
-    crop_position: Tuple[int, int]
-)->None:
+    original_image: torch.Tensor,
+    crop_image: torch.Tensor,
+    crop_position: Tuple[int, int],
+) -> None:
     """
-    Plots the original image and its cropped section side by side, with a rectangle on the original 
+    Plots the original image and its cropped section side by side, with a rectangle on the original
     image indicating the crop's location.
 
     Args:
@@ -84,20 +83,27 @@ def plot_image_with_crop(
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
     # Plot the original image
-    axs[0].imshow(original_image_np, cmap='gray')
-    axs[0].set_title('Original Image')
+    axs[0].imshow(original_image_np, cmap="gray")
+    axs[0].set_title("Original Image")
 
     # Create a rectangle patch
     crop_x, crop_y = crop_position
     crop_height, crop_width = crop_image.shape[1:3]
-    rect = patches.Rectangle((crop_x, crop_y), crop_width, crop_height, linewidth=1, edgecolor='r', facecolor='none')
-    
+    rect = patches.Rectangle(
+        (crop_x, crop_y),
+        crop_width,
+        crop_height,
+        linewidth=1,
+        edgecolor="r",
+        facecolor="none",
+    )
+
     # Add the rectangle to the original image plot
     axs[0].add_patch(rect)
 
     # Plot the cropped image
-    axs[1].imshow(crop_image_np, cmap='gray')
-    axs[1].set_title('Crop')
+    axs[1].imshow(crop_image_np, cmap="gray")
+    axs[1].set_title("Crop")
 
     # Hide axes for both plots
     # axs[0].axis('off')

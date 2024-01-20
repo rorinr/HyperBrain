@@ -1,7 +1,10 @@
 import torch
 from typing import Tuple
 
-def crop_image(image: torch.Tensor, crop_position: torch.Tensor, crop_size: int) -> torch.Tensor:
+
+def crop_image(
+    image: torch.Tensor, crop_position: torch.Tensor, crop_size: int
+) -> torch.Tensor:
     """
     Crop an image.
 
@@ -13,10 +16,15 @@ def crop_image(image: torch.Tensor, crop_position: torch.Tensor, crop_size: int)
     Returns:
         torch.Tensor: Cropped image.
     """
-    return image[:, crop_position[1]:crop_position[1]+crop_size, crop_position[0]:crop_position[0]+crop_size]
+    return image[
+        :,
+        crop_position[1] : crop_position[1] + crop_size,
+        crop_position[0] : crop_position[0] + crop_size,
+    ]
+
 
 def _get_transformed_image_corner_positions(
-    grid_coordinates_transformed: torch.Tensor,
+    coordinate_mapping: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Retrieves the corner coordinates of a transformed image grid.
@@ -26,17 +34,17 @@ def _get_transformed_image_corner_positions(
     bottom-left, and bottom-right.
 
     Args:
-        grid_coordinates_transformed (torch.Tensor): A tensor representing the transformed
+        coordinate_mapping (torch.Tensor): A tensor representing the transformed
                                                      grid coordinates of an image.
 
     Returns:
         tuple: A tuple containing the coordinates (x, y) of the top-left, top-right,
                bottom-left, and bottom-right corners of the transformed image grid.
     """
-    top_left = grid_coordinates_transformed[0, 0]
-    top_right = grid_coordinates_transformed[0, -1]
-    bottom_left = grid_coordinates_transformed[-1, 0]
-    bottom_right = grid_coordinates_transformed[-1, -1]
+    top_left = coordinate_mapping[0, 0]
+    top_right = coordinate_mapping[0, -1]
+    bottom_left = coordinate_mapping[-1, 0]
+    bottom_right = coordinate_mapping[-1, -1]
 
     return top_left, top_right, bottom_left, bottom_right
 
@@ -82,7 +90,7 @@ def _calculate_crop_area_bounds(
     return int(min_x), int(max_x), int(min_y), int(max_y)
 
 
-def _adjust_crop_area_boundaries(
+def _adjust_crop_area_bounds_by_crop_size_and_shift(
     crop_position_min_x: int,
     crop_position_max_x: int,
     crop_position_min_y: int,
@@ -128,7 +136,7 @@ def _adjust_crop_area_boundaries(
 
 
 def sample_crop_coordinates(
-    grid_coordinates_transformed: torch.tensor,
+    coordinate_mapping: torch.tensor,
     crop_size: int,
     max_translation_shift: int,
 ) -> Tuple[torch.tensor, torch.tensor]:
@@ -141,8 +149,8 @@ def sample_crop_coordinates(
 
     Args:
         crop_size (int): The size of the square crop.
-        grid_coordinates_transformed (torch.Tensor): A tensor representing the grid coordinates of the
-                                                     transformed image.
+        coordinate_mapping (torch.Tensor):  A grid mapping each pixel from image_1 (index) 
+                                            to its corresponding location in image_2 (value).
         max_translation_shift (int): The maximum translation shift applied to the crop position in the
                                      transformed image.
 
@@ -156,7 +164,7 @@ def sample_crop_coordinates(
         - The crop position in the transformed image is shifted randomly within the specified max_translation_shift.
     """
 
-    image_size = grid_coordinates_transformed.shape[:2]
+    image_size = coordinate_mapping.shape[:2]
 
     # Get the corner positions of the transformed image
     (
@@ -164,7 +172,7 @@ def sample_crop_coordinates(
         top_right,
         bottom_left,
         bottom_right,
-    ) = _get_transformed_image_corner_positions(grid_coordinates_transformed)
+    ) = _get_transformed_image_corner_positions(coordinate_mapping)
     assert (
         top_left[0] == 0 and top_left[1] == 0
     ), "top_left corner of transformed image is not [0,0]"  # top_left=[0,0] since grid_coordinates_transformed[0,0] = [0,0]
@@ -185,7 +193,7 @@ def sample_crop_coordinates(
         crop_position_max_x,
         crop_position_min_y,
         crop_position_max_y,
-    ) = _adjust_crop_area_boundaries(
+    ) = _adjust_crop_area_bounds_by_crop_size_and_shift(
         crop_position_min_x,
         crop_position_max_x,
         crop_position_min_y,
@@ -194,6 +202,7 @@ def sample_crop_coordinates(
         max_translation_shift,
     )
 
+    print(f"crop_position_min_x: {crop_position_min_x}, crop_position_max_x: {crop_position_max_x}, crop_position_min_y: {crop_position_min_y}, crop_position_max_y: {crop_position_max_y}")
     # Check if sampling space is valid
     assert (
         crop_position_min_x + 1 <= crop_position_max_x
@@ -202,35 +211,73 @@ def sample_crop_coordinates(
         crop_position_min_y + 1 <= crop_position_max_y
     ), "crop_position_min_y > crop_position_max_y"
 
-    # Sample random crop position for original image
-    original_crop_position_x = torch.randint(
-        crop_position_min_x, crop_position_max_x, (1,)
-    ).item()
-    original_crop_position_y = torch.randint(
-        crop_position_min_y, crop_position_max_y, (1,)
-    ).item()
+    # Mask for valid crop positions of transformed image
+    mask_x = (coordinate_mapping[:, :, 0] >= crop_position_min_x) & (coordinate_mapping[:, :, 0] <= crop_position_max_x)
+    mask_y = (coordinate_mapping[:, :, 1] >= crop_position_min_y) & (coordinate_mapping[:, :, 1] <= crop_position_max_y)
+    mask = mask_x & mask_y
 
-    # Find where the original crop position is located in the transformed image
-    original_crop_position_transformed = grid_coordinates_transformed[
-        original_crop_position_y, original_crop_position_x
+    # Mask holds valid positions in coordinate_mapping. 
+    # Sample one of this positions randomly.
+    valid_indices = mask.nonzero()
+    sampled_index = torch.randint(0, valid_indices.shape[0], (1,))[0]
+
+    # Get the crop position in the original image
+    crop_position_image_1 = valid_indices[sampled_index]
+
+    # Get the crop position in the transformed image
+    crop_position_image_2 = coordinate_mapping[crop_position_image_1[1], crop_position_image_1[0]]
+    crop_position_image_2 = crop_position_image_2.long()
+
+    # Apply a random shift to the crop position in the transformed image
+    # crop_position_image_2 += torch.randint(-max_translation_shift, max_translation_shift + 1, (2,))
+
+    return crop_position_image_1, crop_position_image_2  
+
+def create_crop_coordinate_mapping(
+    image_coordinate_mapping: torch.Tensor,
+    crop_position_image_1: tuple,
+    crop_position_image_2: tuple,
+    crop_size: int,
+) -> torch.Tensor:
+    """
+    Creates a grid mapping between two cropped images from their transformed grid coordinates.
+
+    This function adjusts the grid coordinates of a transformed image (grid_coordinates_transformed)
+    to create a mapping grid specific to the cropped regions of the original and transformed images.
+    It maps each pixel's position from the crop of the original image (image_1) to its corresponding
+    position in the crop of the transformed image (image_2).
+
+    Args:
+        image_coordinate_mapping (torch.Tensor): A grid mapping each pixel from image_1 (index) to its corresponding location in image_2 (value).
+        crop_start_img1 (tuple): The (x, y) coordinates of the top-left corner of the crop in the original image (image_1).
+        crop_start_img2 (tuple): The (x, y) coordinates of the top-left corner of the crop in the transformed image (image_2).
+        crop_size (int): The size of the square crop.
+
+    Returns:
+        torch.Tensor: A grid mapping each pixel from the crop in image_1 to its corresponding location in the crop of image_2.
+
+    Note:
+        The grid is of shape (crop_size, crop_size, 2), where the last dimension represents the x and y coordinates of each pixel.
+        The grid is initialized with -1, which is used to mark pixels that fall outside the bounds of the transformed image.
+    """
+
+    # Extracting a specific region from image_coordinate_mapping to create the crop mapping.
+    # This region corresponds to the area of the original image (image_1) that has been cropped.
+    crop_mapping_region = image_coordinate_mapping[
+        crop_position_image_1[1] : crop_position_image_1[1] + crop_size,
+        crop_position_image_1[0] : crop_position_image_1[0] + crop_size,
     ]
 
-    # Calculate the transformed crop position by shifting the original crop position randomly
-    transformed_crop_position_x = (
-        original_crop_position_transformed[0]
-        + torch.randint(-max_translation_shift, max_translation_shift, (1,)).item()
-    )
-    transformed_crop_position_y = (
-        original_crop_position_transformed[1]
-        + torch.randint(-max_translation_shift, max_translation_shift, (1,)).item()
-    )
+    # Adjusting the coordinates relative to the top-left corner of image_2_crop
+    adjusted_crop_mapping_region = crop_mapping_region - crop_position_image_2
 
-    # Create crop positions
-    original_crop_position = torch.tensor(
-        [original_crop_position_x, original_crop_position_y]
+    # Filtering out coordinates that fall outside the bounds of image_2_crop
+    valid_mask = (adjusted_crop_mapping_region >= 0) & (
+        adjusted_crop_mapping_region < crop_size
     )
-    transformed_crop_position = torch.tensor(
-        [int(transformed_crop_position_x), int(transformed_crop_position_y)]
-    )  # Make sure coordinates are integers
+    valid_mask = valid_mask.all(dim=2)
+    crop_coordinate_mapping = torch.where(
+        valid_mask.unsqueeze(-1), adjusted_crop_mapping_region, -1
+    )  # Mark invalid coordinates with -1
 
-    return original_crop_position, transformed_crop_position
+    return crop_coordinate_mapping
