@@ -64,7 +64,8 @@ def plot_images_with_matches_via_match_matrix(
     image_2: torch.Tensor, 
     match_matrix: torch.Tensor,
     visualization_mode: str,
-    patch_size: int = 16
+    patch_size: int = 16,
+    line_frequency: int = 50
 ) -> None:
     """
     Visualizes matches between two image crops using a match matrix.
@@ -88,7 +89,7 @@ def plot_images_with_matches_via_match_matrix(
 
     # Drawing lines for a subset of matches
     if visualization_mode=="lines":
-        for patch_index_1, patch_index_2 in match_indices[::75]:
+        for patch_index_1, patch_index_2 in match_indices[::line_frequency]:
             x1, y1 = divmod(patch_index_1.item(), num_patches_per_side)
             x2, y2 = divmod(patch_index_2.item(), num_patches_per_side)
             x1, y1 = x1 * patch_size + patch_size // 2, y1 * patch_size + patch_size // 2
