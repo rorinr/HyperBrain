@@ -36,7 +36,7 @@ def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 
         patch_size (int): The size of each square patch. Defaults to 16.
 
     Returns:
-        match_matrix (torch.Tensor): A binary matrix of shape (1600, 1600) indicating patch matches.
+        match_matrix (torch.Tensor): A binary matrix of shape ((crop_size/patch_size)**2, (crop_size/patch_size)**2) indicating patch matches.
     """
 
     # Calculate mid-pixel indices of each patch
@@ -66,3 +66,25 @@ def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 
     match_matrix[crop_1_patch_indices, crop_2_patch_indices.long()] = 1
 
     return match_matrix
+
+def get_patch_coordinates(patch_indices: torch.Tensor, patch_size: int = 16, num_patches_per_side: int = 40) -> torch.Tensor:
+    """
+    Calculates the top-left coordinates of patches in the image grid from their flattened grid indices.
+
+    Args:
+        patch_indices (torch.Tensor): A tensor containing the indices of patches in the flattened grid. Shape: (N,).
+        patch_size (int): The size of each square patch.
+        num_patches_per_side (int): The number of patches per side of the image grid. Defaults to 640/16 = 40.
+
+    Returns:
+        torch.Tensor: The top-left coordinates of the patches corresponding to the given indices. Shape: (N, 2).
+    """
+
+    # Calculate x and y coordinates
+    x_coords = (patch_indices % num_patches_per_side) * patch_size
+    y_coords = (patch_indices // num_patches_per_side) * patch_size
+
+    # Combine x and y coordinates
+    coordinates = torch.stack((x_coords, y_coords), dim=1)
+
+    return coordinates

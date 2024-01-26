@@ -56,3 +56,42 @@ def transform_grid_coordinates(
     )
 
     return transformed_grid_coordinates
+
+def translate_fine_to_coarse(fine_coordinates: torch.Tensor, fine_size: int, coarse_size: int) -> torch.Tensor:
+    """
+    Translates coordinates from a fine feature map to a coarse feature map.
+
+    Args:
+        fine_coordinates (torch.Tensor): A tensor of shape (N, 2) representing coordinates in the fine map.
+        fine_size (int): The size (height/width assuming square) of the fine feature map.
+        coarse_size (int): The size (height/width assuming square) of the coarse feature map.
+
+    Returns:
+        torch.Tensor: Translated coordinates in the coarse feature map.
+    """
+
+    scale_factor = fine_size / coarse_size
+    coarse_coords = fine_coordinates.float() / scale_factor
+
+    return coarse_coords.long()
+
+def get_relative_coordinates(transformed_coordinates: torch.Tensor, reference_coordinates: torch.Tensor, window_size: int = 5) -> torch.Tensor:
+    """
+    Converts absolute coordinates to relative coordinates within a local window.
+
+    Args:
+        transformed_coordinates (torch.Tensor): Transformed coordinates in, eg, the fine feature space.
+        reference_coordinates (torch.Tensor): Reference coordinates, typically the mid-pixels of patches in crop_2.
+        window_size (int): The size of the local window. Defaults to 5.
+
+    Returns:
+        torch.Tensor: Relative coordinates within the local window.
+    """
+
+    # Calculate the offset
+    offset = transformed_coordinates - reference_coordinates
+
+    # Normalize the offset to the -1 to 1 range
+    relative_coordinates = offset / ((window_size - 1) / 2)
+
+    return relative_coordinates
