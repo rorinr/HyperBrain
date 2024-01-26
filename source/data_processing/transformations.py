@@ -57,7 +57,10 @@ def transform_grid_coordinates(
 
     return transformed_grid_coordinates
 
-def translate_fine_to_coarse(fine_coordinates: torch.Tensor, fine_size: int, coarse_size: int) -> torch.Tensor:
+
+def translate_fine_to_coarse(
+    fine_coordinates: torch.Tensor, fine_size: int, coarse_size: int
+) -> torch.Tensor:
     """
     Translates coordinates from a fine feature map to a coarse feature map.
 
@@ -75,7 +78,12 @@ def translate_fine_to_coarse(fine_coordinates: torch.Tensor, fine_size: int, coa
 
     return coarse_coords.long()
 
-def get_relative_coordinates(transformed_coordinates: torch.Tensor, reference_coordinates: torch.Tensor, window_size: int = 5) -> torch.Tensor:
+
+def get_relative_coordinates(
+    transformed_coordinates: torch.Tensor,
+    reference_coordinates: torch.Tensor,
+    window_size: int = 5,
+) -> torch.Tensor:
     """
     Converts absolute coordinates to relative coordinates within a local window.
 

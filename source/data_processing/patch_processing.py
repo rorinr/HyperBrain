@@ -1,6 +1,9 @@
 import torch
 
-def get_patch_index(coordinates: torch.Tensor, patch_size: int = 16, num_patches_per_side: int = 40) -> torch.Tensor:
+
+def get_patch_index(
+    coordinates: torch.Tensor, patch_size: int = 16, num_patches_per_side: int = 40
+) -> torch.Tensor:
     """
     Calculates the indices of patches in a flattened grid from their coordinates.
 
@@ -26,7 +29,9 @@ def get_patch_index(coordinates: torch.Tensor, patch_size: int = 16, num_patches
     return flat_patch_indices
 
 
-def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 640, patch_size: int = 16) -> torch.Tensor:
+def create_match_matrix(
+    crop_coordinate_mapping: torch.Tensor, crop_size: int = 640, patch_size: int = 16
+) -> torch.Tensor:
     """
     Creates a match matrix that represents patch matches between two image crops.
 
@@ -41,9 +46,9 @@ def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 
 
     # Calculate mid-pixel indices of each patch
     y_indices_mid, x_indices_mid = torch.meshgrid(
-        torch.arange(patch_size // 2, crop_size, patch_size), 
-        torch.arange(patch_size // 2, crop_size, patch_size), 
-        indexing='ij'
+        torch.arange(patch_size // 2, crop_size, patch_size),
+        torch.arange(patch_size // 2, crop_size, patch_size),
+        indexing="ij",
     )
 
     # Extract mid-pixel coordinates for mapping
@@ -58,7 +63,9 @@ def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 
     mid_pixel_mappings_flat = mid_pixel_mappings.view(-1, 2)[valid_patch_mask.flatten()]
 
     # Calculate patch indices in the original and transformed image
-    crop_1_patch_indices = get_patch_index(torch.stack((x_indices_mid_flat, y_indices_mid_flat), dim=1), patch_size)
+    crop_1_patch_indices = get_patch_index(
+        torch.stack((x_indices_mid_flat, y_indices_mid_flat), dim=1), patch_size
+    )
     crop_2_patch_indices = get_patch_index(mid_pixel_mappings_flat, patch_size)
 
     # Initialize and populate the match matrix
@@ -67,7 +74,10 @@ def create_match_matrix(crop_coordinate_mapping: torch.Tensor, crop_size: int = 
 
     return match_matrix
 
-def get_patch_coordinates(patch_indices: torch.Tensor, patch_size: int = 16, num_patches_per_side: int = 40) -> torch.Tensor:
+
+def get_patch_coordinates(
+    patch_indices: torch.Tensor, patch_size: int = 16, num_patches_per_side: int = 40
+) -> torch.Tensor:
     """
     Calculates the top-left coordinates of patches in the image grid from their flattened grid indices.
 

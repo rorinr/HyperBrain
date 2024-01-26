@@ -59,13 +59,14 @@ def plot_images_with_matches_via_mapping(
     # Show the plot
     plt.show()
 
+
 def plot_images_with_matches_via_match_matrix(
-    image_1: torch.Tensor, 
-    image_2: torch.Tensor, 
+    image_1: torch.Tensor,
+    image_2: torch.Tensor,
     match_matrix: torch.Tensor,
     visualization_mode: str,
     patch_size: int = 16,
-    line_frequency: int = 50
+    line_frequency: int = 50,
 ) -> None:
     """
     Visualizes matches between two image crops using a match matrix.
@@ -83,20 +84,26 @@ def plot_images_with_matches_via_match_matrix(
 
     # Prepare the figure and axis
     fig, ax = plt.subplots(1, 1, figsize=(10, 16))
-    ax.imshow(torch.cat((image_1, image_2), dim=2)[0], cmap='gray')
+    ax.imshow(torch.cat((image_1, image_2), dim=2)[0], cmap="gray")
 
     match_indices = match_matrix.nonzero()
 
     # Drawing lines for a subset of matches
-    if visualization_mode=="lines":
+    if visualization_mode == "lines":
         for patch_index_1, patch_index_2 in match_indices[::line_frequency]:
             x1, y1 = divmod(patch_index_1.item(), num_patches_per_side)
             x2, y2 = divmod(patch_index_2.item(), num_patches_per_side)
-            x1, y1 = x1 * patch_size + patch_size // 2, y1 * patch_size + patch_size // 2
-            x2, y2 = x2 * patch_size + patch_size // 2, y2 * patch_size + patch_size // 2
+            x1, y1 = (
+                x1 * patch_size + patch_size // 2,
+                y1 * patch_size + patch_size // 2,
+            )
+            x2, y2 = (
+                x2 * patch_size + patch_size // 2,
+                y2 * patch_size + patch_size // 2,
+            )
             ax.plot([y1, y2 + image_1_width], [x1, x2], color="red", linewidth=0.5)
 
-    if visualization_mode=="patches":
+    if visualization_mode == "patches":
         # Marking all matches with rectangles
         for patch_index_1, patch_index_2 in match_indices:
             x1, y1 = divmod(patch_index_1.item(), num_patches_per_side)
@@ -105,7 +112,7 @@ def plot_images_with_matches_via_match_matrix(
             x2, y2 = x2 * patch_size, y2 * patch_size
 
             # Create a colored rectangle in both image crops
-            for (rect_x, rect_y) in [(y1, x1), (y2 + image_1_width, x2)]:
+            for rect_x, rect_y in [(y1, x1), (y2 + image_1_width, x2)]:
                 rect = patches.Rectangle(
                     (rect_x, rect_y),
                     patch_size,
@@ -113,12 +120,11 @@ def plot_images_with_matches_via_match_matrix(
                     linewidth=1,
                     edgecolor="red",
                     facecolor="red",
-                    alpha=0.3
+                    alpha=0.3,
                 )
                 ax.add_patch(rect)
 
     plt.show()
-
 
 
 def plot_image_with_crop(

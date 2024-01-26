@@ -220,9 +220,7 @@ def sample_crop_coordinates(
 
     # Combine the masks -> An element of mask is True if the corresponding element
     # in coordinate_mapping is a valid crop position
-    mask = (
-        mask_x & mask_y
-    )
+    mask = mask_x & mask_y
 
     true_indices = torch.nonzero(
         mask
@@ -240,7 +238,7 @@ def sample_crop_coordinates(
         true_indices[random_index, 0], true_indices[random_index, 1]
     ]
 
-    # Use max_ranodm_offset to shift the crop position in the transformed image 
+    # Use max_ranodm_offset to shift the crop position in the transformed image
     # -> makes sure that top left corner of crop is not always the same
     crop_position_image_2 += torch.randint(
         -max_translation_shift, max_translation_shift, (2,)
