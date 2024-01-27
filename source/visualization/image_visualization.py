@@ -3,6 +3,38 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Tuple
 import matplotlib.patches as patches
+from typing import List
+
+def plot_images_in_row(images: List[torch.Tensor], figsize=(15, 5)) -> None:
+    """
+    Plots a sequence of images in a row using Matplotlib.
+
+    Args:
+        images (list of torch.Tensor): A list of image tensors to be plotted.
+                                       Each image tensor should have shape [H, W] or [H, W, C].
+        figsize (tuple): The size of the figure. Defaults to (15, 5).
+    """
+
+    # Number of images
+    n = len(images)
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(1, n, figsize=figsize)
+
+    # If there is only one image, axes will not be an array, so we convert it into one for consistency
+    if n == 1:
+        axes = [axes]
+
+    # Plot each image
+    for ax, image in zip(axes, images):
+        # Convert the image to numpy if it's a tensor
+        if hasattr(image, 'numpy'):
+            image = image.numpy()
+
+        # Use imshow to display the image
+        ax.imshow(image)
+
+    plt.show()
 
 
 def plot_images_with_matches_via_mapping(

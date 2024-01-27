@@ -79,6 +79,27 @@ def translate_fine_to_coarse(
     return coarse_coords.long()
 
 
+def translate_coarse_to_fine(
+    coarse_coords: torch.Tensor, coarse_size: int, fine_size: int
+) -> torch.Tensor:
+    """
+    Translates coordinates from a coarse feature map to a fine feature map.
+
+    Args:
+        coarse_coords (torch.Tensor): A tensor of shape (N, 2) representing coordinates in the coarse map.
+        coarse_size (int): The size (height/width assuming square) of the coarse feature map.
+        fine_size (int): The size (height/width assuming square) of the fine feature map.
+
+    Returns:
+        torch.Tensor: Translated coordinates in the fine feature map.
+    """
+
+    scale_factor = fine_size / coarse_size
+    fine_coords = coarse_coords.float() * scale_factor
+
+    return fine_coords.long()
+
+
 def get_relative_coordinates(
     transformed_coordinates: torch.Tensor,
     reference_coordinates: torch.Tensor,
