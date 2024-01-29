@@ -42,6 +42,6 @@ class FineMatching(nn.Module):
         )
 
         # Predict the match coordinates using spatial expectation
-        predicted_match = dsnt.spatial_expectation2d(heatmap[None], normalized_coordinates=True)[0]
+        predicted_matches = dsnt.spatial_expectation2d(heatmap[None], normalized_coordinates=True)[0]
 
-        return predicted_match
+        return predicted_matches

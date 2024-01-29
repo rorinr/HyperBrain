@@ -6,23 +6,23 @@ from einops.einops import rearrange, repeat
 class FinePreprocess(nn.Module):
     def __init__(
         self,
-        d_model_coarse: int,
-        d_model_fine: int,
+        coarse_feature_size: int,
+        fine_feature_size: int,
         window_size: int,
         use_coarse_context: bool,
     ):
         super().__init__()
-        self.d_model_coarse = d_model_coarse
-        self.d_model_fine = d_model_fine
+        self.coarse_feature_size = coarse_feature_size
+        self.fine_feature_size = fine_feature_size
         self.window_size = window_size
         self.use_coarse_context = use_coarse_context
 
         if self.use_coarse_context:
             self.down_projection = nn.Linear(
-                d_model_coarse, d_model_fine, bias=True
+                coarse_feature_size, fine_feature_size, bias=True
             )
             self.merge_features = nn.Linear(
-                2 * d_model_fine, d_model_fine, bias=True
+                2 * fine_feature_size, fine_feature_size, bias=True
             )
 
         self._reset_parameters()
@@ -59,8 +59,8 @@ class FinePreprocess(nn.Module):
 
         # If no matches found
         if coarse_matches["batch_indices"].shape[0] == 0:
-            feature_0 = torch.empty(0, self.W**2, self.d_model_f)
-            feature_1 = torch.empty(0, self.W**2, self.d_model_f)
+            feature_0 = torch.empty(0, self.W**2, self.fine_feature_size)
+            feature_1 = torch.empty(0, self.W**2, self.fine_feature_size)
             return feature_0, feature_1
 
         # 1. unfold(crop) all local windows -> mid pixels of patches are here in the middle of the window

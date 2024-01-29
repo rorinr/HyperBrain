@@ -1,5 +1,41 @@
 import torch
 
+def coarse_loss(predicted_confidence: torch.Tensor, ground_truth_confidence: torch.Tensor) -> torch.Tensor:
+    """
+    Computes the mean cross-entropy loss for positive and negative matches in confidence scores.
+
+    The function applies point-wise cross-entropy loss for each element in the confidence score tensor.
+    It separately computes the loss for positive matches (where ground truth is 1) and negative matches
+    (where ground truth is 0), then returns the weighted sum of these mean losses.
+
+    Args:
+        predicted_confidence (torch.Tensor): Tensor containing predicted confidence scores, shape (N, P0, P1).
+        ground_truth_confidence (torch.Tensor): Tensor containing ground truth for confidence scores, shape (N, P0, P1).
+        N represents the number of matches, and P0, P1 are the number of patches in each image.
+
+    Returns:
+        torch.Tensor: The weighted sum of mean cross-entropy losses for positive and negative matches.
+    """
+    # Create masks for positive and negative matches
+    positive_mask = ground_truth_confidence == 1
+    negative_mask = ground_truth_confidence == 0
+
+    # Weights for positive and negative matches as per configuration
+    coarse_positive_weight, coarse_negative_weight = 1.0, 1.0
+
+    # Clamping the confidence values for numerical stability
+    predicted_confidence = torch.clamp(predicted_confidence, 1e-6, 1 - 1e-6)
+
+    # Calculating loss for positive matches
+    loss_positive = -torch.log(predicted_confidence[positive_mask])
+
+    # Calculating loss for negative matches
+    loss_negative = -torch.log(1 - predicted_confidence[negative_mask])
+
+    # Computing the weighted sum of mean losses for positive and negative matches
+    return coarse_positive_weight * loss_positive.mean() + coarse_negative_weight * loss_negative.mean()
+
+
 def fine_loss(coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor) -> torch.Tensor:
     """
     Computes the mean L2 distance (Euclidean distance) between the predicted and ground truth coordinates.

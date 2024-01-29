@@ -115,6 +115,7 @@ class CoarseMatching(nn.Module):
 
         # Create a dictionary with names and their corresponding values
         result = {
+            "confidence_matrix": confidence_matrix,
             "matching_confidences": matching_confidences,
             "batch_indices": batch_indices,
             "row_indices": row_indices,
