@@ -201,4 +201,4 @@ class CoarseMatching(nn.Module):
             confidence_matrix=confidence_matrix, match_mask=match_mask
         )
 
-        return coarse_matches, match_mask, confidence_matrix
+        return coarse_matches
