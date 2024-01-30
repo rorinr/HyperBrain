@@ -1,6 +1,9 @@
 import torch
 
-def coarse_loss(predicted_confidence: torch.Tensor, ground_truth_confidence: torch.Tensor) -> torch.Tensor:
+
+def coarse_loss(
+    predicted_confidence: torch.Tensor, ground_truth_confidence: torch.Tensor
+) -> torch.Tensor:
     """
     Computes the mean cross-entropy loss for positive and negative matches in confidence scores.
 
@@ -33,15 +36,20 @@ def coarse_loss(predicted_confidence: torch.Tensor, ground_truth_confidence: tor
     loss_negative = -torch.log(1 - predicted_confidence[negative_mask])
 
     # Computing the weighted sum of mean losses for positive and negative matches
-    return coarse_positive_weight * loss_positive.mean() + coarse_negative_weight * loss_negative.mean()
+    return (
+        coarse_positive_weight * loss_positive.mean()
+        + coarse_negative_weight * loss_negative.mean()
+    )
 
 
-def fine_loss(coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor) -> torch.Tensor:
+def fine_loss(
+    coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor
+) -> torch.Tensor:
     """
     Computes the mean L2 distance (Euclidean distance) between the predicted and ground truth coordinates.
 
-    This function calculates the Euclidean distance for each pair of corresponding coordinates and then 
-    returns the mean of these distances. In future iterations, weighting by the inverse standard deviation 
+    This function calculates the Euclidean distance for each pair of corresponding coordinates and then
+    returns the mean of these distances. In future iterations, weighting by the inverse standard deviation
     may be implemented for enhanced accuracy.
 
     Args:

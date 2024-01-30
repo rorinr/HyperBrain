@@ -5,6 +5,7 @@ from typing import Tuple
 import matplotlib.patches as patches
 from typing import List
 
+
 def plot_images_in_row(images: List[torch.Tensor], figsize=(15, 5)) -> None:
     """
     Plots a sequence of images in a row using Matplotlib.
@@ -28,7 +29,7 @@ def plot_images_in_row(images: List[torch.Tensor], figsize=(15, 5)) -> None:
     # Plot each image
     for ax, image in zip(axes, images):
         # Convert the image to numpy if it's a tensor
-        if hasattr(image, 'numpy'):
+        if hasattr(image, "numpy"):
             image = image.numpy()
 
         # Use imshow to display the image
@@ -95,20 +96,24 @@ def plot_images_with_matches_via_mapping(
 def plot_images_with_matches_via_match_matrix(
     image_1: torch.Tensor,
     image_2: torch.Tensor,
-    match_matrix: torch.Tensor,
-    visualization_mode: str,
+    ground_truth_match_matrix: torch.Tensor,
+    predicted_match_matrix: torch.Tensor = None,
+    visualization_mode: str = "lines",
     patch_size: int = 16,
     line_frequency: int = 50,
 ) -> None:
     """
-    Visualizes matches between two image crops using a match matrix.
+    Visualizes matches between two image crops. If predicted matches are provided, it visualizes correct and incorrect matches.
+    Otherwise, only ground truth matches are visualized.
 
     Args:
         image_1 (torch.Tensor): The first image crop.
         image_2 (torch.Tensor): The second image crop.
-        match_matrix (torch.Tensor): A binary matrix indicating matches between patches in the two crops.
-        visualization_model (str): Either 'lines' or 'patches'. How to visualize the matches.
+        ground_truth_match_matrix (torch.Tensor): The ground truth binary matrix indicating matches between patches.
+        predicted_match_matrix (torch.Tensor, optional): The predicted binary matrix indicating matches between patches.
+        visualization_model (str): Either 'lines' or 'patches'. How to visualize the matches. Note that 'patches' is only supported for ground truth matches.
         patch_size (int): The size of each square patch. Defaults to 16.
+        line_frequency (int): Frequency of drawing match lines. Defaults to 50.
     """
 
     num_patches_per_side = image_1.shape[1] // patch_size
@@ -118,22 +123,23 @@ def plot_images_with_matches_via_match_matrix(
     fig, ax = plt.subplots(1, 1, figsize=(10, 16))
     ax.imshow(torch.cat((image_1, image_2), dim=2)[0], cmap="gray")
 
-    match_indices = match_matrix.nonzero()
+    match_indices = ground_truth_match_matrix.nonzero() if predicted_match_matrix is None else predicted_match_matrix.nonzero()
 
     # Drawing lines for a subset of matches
     if visualization_mode == "lines":
         for patch_index_1, patch_index_2 in match_indices[::line_frequency]:
             x1, y1 = divmod(patch_index_1.item(), num_patches_per_side)
             x2, y2 = divmod(patch_index_2.item(), num_patches_per_side)
-            x1, y1 = (
-                x1 * patch_size + patch_size // 2,
-                y1 * patch_size + patch_size // 2,
-            )
-            x2, y2 = (
-                x2 * patch_size + patch_size // 2,
-                y2 * patch_size + patch_size // 2,
-            )
-            ax.plot([y1, y2 + image_1_width], [x1, x2], color="red", linewidth=0.5)
+            x1, y1 = (x1 * patch_size + patch_size // 2, y1 * patch_size + patch_size // 2)
+            x2, y2 = (x2 * patch_size + patch_size // 2, y2 * patch_size + patch_size // 2)
+
+            if predicted_match_matrix is not None:
+                # Determine color based on match correctness
+                line_color = "green" if ground_truth_match_matrix[patch_index_1, patch_index_2] == 1 else "red"
+            else:
+                line_color = "blue"  # Default color for ground truth matches
+
+            ax.plot([y1, y2 + image_1_width], [x1, x2], color=line_color, linewidth=1)
 
     if visualization_mode == "patches":
         # Marking all matches with rectangles
@@ -155,8 +161,9 @@ def plot_images_with_matches_via_match_matrix(
                     alpha=0.3,
                 )
                 ax.add_patch(rect)
-
+                
     plt.show()
+
 
 
 def plot_image_with_crop(
