@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 def plot_loss_curve(
     loss_values: list,
     title: str = "Loss Curve",
-    xlabel: str = "Number of Data Points",
+    xlabel: str = "Batch No.",
     ylabel: str = "Loss",
 ):
     """

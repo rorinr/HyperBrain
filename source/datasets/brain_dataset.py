@@ -23,6 +23,32 @@ from source.data_processing.patch_processing import (
 from kornia.geometry.transform import warp_affine
 import os
 
+def collate_fn(batch: List[Tuple])-> Tuple[torch.Tensor]:
+    """
+    Custom collate function to handle batches of data with variable-sized relative coordinates.
+
+    Args:
+        batch: A list of tuples with the structure returned by `__getitem__` method of your dataset.
+
+    Returns:
+        A batch with the relative coordinates packed in a list and other data stacked as usual.
+    """
+    # Unzip the batch
+    image_1_crops, image_2_crops, match_matrices, relative_coordinates, crop_coordinate_mappings = zip(*batch)
+    
+    # Stack tensors where possible
+    image_1_crops = torch.stack(image_1_crops)
+    image_2_crops = torch.stack(image_2_crops)
+    match_matrices = torch.stack(match_matrices)
+    crop_coordinate_mappings = torch.stack(crop_coordinate_mappings)
+    relative_coordinates = torch.row_stack(relative_coordinates)
+
+    # relative_coords is already a list of tensors of varying sizes; no need to stack
+
+    return image_1_crops, image_2_crops, match_matrices, relative_coordinates, crop_coordinate_mappings
+
+
+
 
 class BrainDataset(Dataset):
     def __init__(
