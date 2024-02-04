@@ -2,11 +2,13 @@ import torch
 from torch import nn
 
 from kornia.geometry.subpix import dsnt
+from kornia.utils.grid import create_meshgrid
 
 
 class FineMatching(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, return_standard_deviation: bool=False) -> None:
         super().__init__()
+        self.return_standard_deviation = return_standard_deviation
 
     def forward(
         self, fine_image_feature_1: torch.Tensor, fine_image_feature_2: torch.Tensor
@@ -53,4 +55,13 @@ class FineMatching(nn.Module):
             heatmap[None], normalized_coordinates=True
         )[0]
 
-        return predicted_matches
+        if not self.return_standard_deviation:
+            return predicted_matches
+
+        grid_normalized = create_meshgrid(window_size, window_size, True, heatmap.device).reshape(1, -1, 2)  # [1, window_size_squared, 2]
+        
+        # compute std over <x, y>
+        variance = torch.sum(grid_normalized**2 * heatmap.view(-1, window_size_squared, 1), dim=1) - predicted_matches**2  # [number_of_matches, 2]
+        standard_deviation = torch.sum(torch.sqrt(torch.clamp(variance, min=1e-10)), -1)  # [number_of_matches]  clamp needed for numerical stability
+        
+        return torch.cat([predicted_matches, standard_deviation.unsqueeze(1)], -1)

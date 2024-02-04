@@ -61,7 +61,7 @@ def coarse_focal_loss(predicted_confidence: torch.Tensor, ground_truth_confidenc
 
 
 
-def fine_loss(
+def fine_l2_loss(
     coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor
 ) -> torch.Tensor:
     """
@@ -81,7 +81,32 @@ def fine_loss(
     """
     # Calculate squared differences and sum over coordinate dimension
     squared_differences = (coordinates_ground_truth - coordinates_predicted) ** 2
-    l2_distances = torch.sqrt(squared_differences.sum(dim=-1))
+    l2_distances = squared_differences.sum(dim=-1)
 
     # Return the mean of the L2 distances
     return l2_distances.mean()
+
+def fine_l2_loss_with_standard_deviation(
+    coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor
+) -> torch.Tensor:    
+    """
+    Computes the mean L2 distance (Euclidean distance) between the predicted and ground truth coordinates.
+
+    This function calculates the Euclidean distance for each pair of corresponding coordinates and then
+    returns the mean of these distances.
+
+    Args:
+        coordinates_predicted (torch.Tensor): Tensor containing predicted coordinates and their heatmaps deviations. shape (N, 3).
+        coordinates_ground_truth (torch.Tensor): Tensor containing ground truth coordinates, shape (N, 2).
+        N represents the number of matches.
+
+    Returns:
+        torch.Tensor: The mean L2 distance between predicted and ground truth coordinates.
+    """
+
+    standard_deviation = coordinates_predicted[:, 2]
+    inverse_standard_deviation = 1./torch.clamp(standard_deviation, min=1e-10)
+    weight = (inverse_standard_deviation/torch.mean(inverse_standard_deviation)).detach()  # normalize and detach
+    l2_distances = ((coordinates_ground_truth - coordinates_predicted[:, :2])**2).sum(-1)
+
+    return (l2_distances*weight).mean()

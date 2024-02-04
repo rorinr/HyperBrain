@@ -1,0 +1,1 @@
+{"lr": 0.0004, "wd": 0.0015, "coarse_context": false, "img_size": "3344_3904", "ResNet": "16_4", "transform_threshold": 0.3, "temp": 0.2, "bs": 2, "coarse_loss": "focal", "fine_loss": "l2_std", "train": true, "gamma": 2, "alpha": 0.55}
