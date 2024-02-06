@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 class CoarseMatching(nn.Module):
@@ -39,7 +39,7 @@ class CoarseMatching(nn.Module):
 
     def get_confidence_matrix(
         self, coarse_image_feature_1: torch.Tensor, coarse_image_feature_2: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor]:
         """
         Compute a confidence matrix from two sets of image features using a temperature-scaled dot product and dual softmax.
 
@@ -57,10 +57,11 @@ class CoarseMatching(nn.Module):
                                 Lower values result in a sharper distribution.
 
         Returns:
-            torch.Tensor: A confidence matrix of shape (N, L, S), where N is the batch size, L is the number of features
+            confidence_matrix: A tensor of shape (N, L, S), where N is the batch size, L is the number of features
                         in coarse_image_feature_1, and S is the number of features in coarse_image_feature_2. Each element
                         in the matrix represents the confidence of matching a feature in coarse_image_feature_1 with a feature
                         in coarse_image_feature_2.
+            similarity_matrix: A tensor used to compute the confidence matrix. Just returned for debugging purposes.
         Note:
             A specific element of the confidence matrix, denoted as confidence_matrix[i, j], represents the confidence of
             matching the i-th feature in the first set of image features (from coarse_image_feature_1) with the j-th feature
@@ -77,7 +78,7 @@ class CoarseMatching(nn.Module):
         confidence_matrix = F.softmax(similarity_matrix, 1) * F.softmax(
             similarity_matrix, 2
         )
-        return confidence_matrix
+        return confidence_matrix, similarity_matrix
 
     def extract_matching_confidences(
         self, confidence_matrix: torch.Tensor, match_mask: torch.Tensor
@@ -153,12 +154,15 @@ class CoarseMatching(nn.Module):
         coarse_image_feature_1, coarse_image_feature_2 = self.normalize_features(
             coarse_image_feature_1, coarse_image_feature_2
         )
-        confidence_matrix = self.get_confidence_matrix(
+        confidence_matrix, similarity_matrix = self.get_confidence_matrix(
             coarse_image_feature_1=coarse_image_feature_1,
             coarse_image_feature_2=coarse_image_feature_2,
         )
 
-        return self.get_coarse_matches(confidence_matrix=confidence_matrix)
+        coarse_matches = self.get_coarse_matches(confidence_matrix=confidence_matrix)
+        coarse_matches["similarity_matrix"] = similarity_matrix
+
+        return coarse_matches
 
     @torch.no_grad()
     def get_coarse_matches(
