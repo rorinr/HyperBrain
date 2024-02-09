@@ -61,6 +61,7 @@ class BrainDataset(Dataset):
         patch_size: int = 16,
         fine_feature_size: int = 160,
         transform: transforms.transforms.Compose = None,
+        return_crop_coordinates: bool = False
     ) -> None:
         super().__init__()
         self.train = train
@@ -72,6 +73,7 @@ class BrainDataset(Dataset):
         self.max_translation_shift = max_translation_shift
         self.patch_size = patch_size
         self.fine_feature_size = fine_feature_size
+        self.return_crop_coordinates = return_crop_coordinates
 
     def __len__(self) -> int:
         """
@@ -251,6 +253,17 @@ class BrainDataset(Dataset):
         relative_coordinates = get_relative_coordinates(
             transformed_coordinates=crop_1_mid_pixels_transformed_fine,
             reference_coordinates=crop_2_patch_mid_indices_fine,
+        )
+
+        if self.return_crop_coordinates:
+            return (
+            image_1_crop,
+            image_2_crop,
+            match_matrix,
+            relative_coordinates,
+            crop_coordinate_mapping,
+            crop_position_image_1, 
+            crop_position_image_2
         )
 
         # Create the final output
