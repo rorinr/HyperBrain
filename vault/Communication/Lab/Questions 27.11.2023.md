@@ -1,0 +1,11 @@
+- Are aligned images good enough? -> Show notebook
+- Annotated data is accurate to ~20 pixel. When using an unsupervised approach its theoretical possible to reach a more accurate model than the ground truth. But we wouldnt be able to tell so because we just dont know. Is this neglilible?
+- Which augmentations for unsupervised approach?
+- LoFTR unsupervised possible? Paper uses supervision from 3d reconstructions (afaik)
+- Supervision for cyto just for one half of the brain. But for the whole half or just a part of this half?
+- How does the tif-scaling work? Can i just scale the original image on my own or is this a special process?
+- How to show that the mapping is actually highly non-linear like you told me?
+	- For most (~80%) of the cyto-images a homography projection is enough. This differs from pli-images which are harder to match
+	- Is it required to train one model for cyto? Or can we use cyto as beginning and try to continue with pli? Is a working model for cyto useless?
+- Is it enough to just provide you the matching points of the 2 images? So no transformation or so is needed from my side?
+- register for master thesis?

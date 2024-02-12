@@ -6,9 +6,10 @@ from kornia.utils.grid import create_meshgrid
 
 
 class FineMatching(nn.Module):
-    def __init__(self, return_standard_deviation: bool=False) -> None:
+    def __init__(self, return_standard_deviation: bool=False, clamp_predictions: bool=False) -> None:
         super().__init__()
         self.return_standard_deviation = return_standard_deviation
+        self.clamp_predictions = clamp_predictions
 
     def forward(
         self, fine_image_feature_1: torch.Tensor, fine_image_feature_2: torch.Tensor
@@ -54,6 +55,10 @@ class FineMatching(nn.Module):
         predicted_matches = dsnt.spatial_expectation2d(
             heatmap[None], normalized_coordinates=True
         )[0]
+
+        if self.clamp_predictions:
+            # Clip the predicted matches to be within the specified range
+            predicted_matches = torch.clamp(predicted_matches, min=-1, max=0.5)
 
         if not self.return_standard_deviation:
             return predicted_matches

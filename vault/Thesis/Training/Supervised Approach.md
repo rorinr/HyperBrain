@@ -1,0 +1,20 @@
+# Aligned vs. original images
+The aligned images characterize by the fact that same pixel-values of successive slices represent the same physical point in 3D-space. Accordingly, these images are all the same size. Another property of the aligned images is that they only show one brain hemispheres. The original images show both brain hemispheres in one image.  
+The exact transformations that were applied to the original images are not available. Training directly on the aligned images is not possible, as the model would learn to simply predict the same pixel (as pixel (i,j) in image A shows the same point as pixel  (i,j) in image B). There are two ways to solve this problem: 
+1. Train on the original, unaligned images: For this, the transformations must be known. Which pixel of the original image A belongs to which pixel of the original image B?
+2. Train on the aligned images: For this, augmentations must be applied. The question is whether this augmented version of the aligned images is similar enough to the original images. This is important to consider so that the procedure also works at test time. 
+
+# Input-Output relation
+The input at test time are 2 not aligned images are matches, i.e. pixel to pixel correspondences. 
+## LoFTR
+When using LoFTR compute can be a limiting factor. The resolution of cyto-images is really high. If you still want to match at a resolution of 1 pixel = 1 micrometer, this results in an extremely large number of patches per image (since LoFTR uses images of size 640 × 480, vs 40,000 x 40,000 for some cyto images). But we can make use of some prior knowledge, also at test time. Handcrafted methods like SIFT should be able to define a coarse matching. This means that we have a rough idea of where a pixel from image A can be found in image B. If we now only select a section of image B, but we are sure that the corresponding pixel is located in this section, this reduces the complexity considerably. 
+Disadvantage: 
+	- We are still dependent on SIFT. This is acceptable for cyto images, as SIFT works well on these. This may be different for PLI.
+	- Is it acceptable to simply resize the original image?
+	- Is the assumption of "planar", i.e. a flat surface, applicable? Because in praxis a simple homography is not powerful enough.
+### Augmentation in LoFTR
+When working with the whole image as to matched objects:
+If directly trained with aligned images the model would just learn that the first patch of image 1 (i.e. the patch in the (top-left corner) matches with the first patch of image 2 (and so on for the other patches). We can avoid this trivial solution by using augmentations. 
+
+Rotation: Since working with the whole image (maybe downscaled but nothing is cutted out) a rotation would mean that the patch in the top-left corner of image 1 is still in one of the corners of image 2 (assuming rotations of 90,180 or 270). Just learning these orthogonal rotations is not sufficient. Another way of using rotation is allowing also other degrees, ie. non-orthogonal rotation. When using this it is important to make sure that there is no "border" around the rotated image, so that it is not possible to find the amount of rotation by looking at these borders. But there is an additional problem: when using all degrees for rotation, some rotations will create ill-defined patch-matches. This means that not each pixel of a patch of image 1 correspond to pixels of image 2 which lay all in the same image 2 patch. This could be solved by using the center pixel as definition: The center pixel of a patch of image 1 lays in exact one patch of image 2 - This is a clear definition. But it is not commutative: This does not mean that also the center pixel of the second patch is inside the first patch! For now it is not clear if this is a problem for training or not. 
+Cropping: Cropping involves less problems than rotation. When defining cropping in a way that just whole patches are cutted out there is no ill-defined pixel at all. 
