@@ -123,19 +123,33 @@ def plot_images_with_matches_via_match_matrix(
     fig, ax = plt.subplots(1, 1, figsize=(10, 16))
     ax.imshow(torch.cat((image_1, image_2), dim=2)[0], cmap="gray")
 
-    match_indices = ground_truth_match_matrix.nonzero() if predicted_match_matrix is None else predicted_match_matrix.nonzero()
+    match_indices = (
+        ground_truth_match_matrix.nonzero()
+        if predicted_match_matrix is None
+        else predicted_match_matrix.nonzero()
+    )
 
     # Drawing lines for a subset of matches
     if visualization_mode == "lines":
         for patch_index_1, patch_index_2 in match_indices[::line_frequency]:
             x1, y1 = divmod(patch_index_1.item(), num_patches_per_side)
             x2, y2 = divmod(patch_index_2.item(), num_patches_per_side)
-            x1, y1 = (x1 * patch_size + patch_size // 2, y1 * patch_size + patch_size // 2)
-            x2, y2 = (x2 * patch_size + patch_size // 2, y2 * patch_size + patch_size // 2)
+            x1, y1 = (
+                x1 * patch_size + patch_size // 2,
+                y1 * patch_size + patch_size // 2,
+            )
+            x2, y2 = (
+                x2 * patch_size + patch_size // 2,
+                y2 * patch_size + patch_size // 2,
+            )
 
             if predicted_match_matrix is not None:
                 # Determine color based on match correctness
-                line_color = "green" if ground_truth_match_matrix[patch_index_1, patch_index_2] == 1 else "red"
+                line_color = (
+                    "green"
+                    if ground_truth_match_matrix[patch_index_1, patch_index_2] == 1
+                    else "red"
+                )
             else:
                 line_color = "blue"  # Default color for ground truth matches
 
@@ -161,9 +175,8 @@ def plot_images_with_matches_via_match_matrix(
                     alpha=0.3,
                 )
                 ax.add_patch(rect)
-                
-    plt.show()
 
+    plt.show()
 
 
 def plot_image_with_crop(

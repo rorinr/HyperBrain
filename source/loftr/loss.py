@@ -35,7 +35,12 @@ def coarse_cross_entropy_loss(
     # Computing the weighted sum of mean losses for positive and negative matches
     return loss_positive.mean() + loss_negative.mean()
 
-def coarse_focal_loss(predicted_confidence: torch.Tensor, ground_truth_confidence: torch.Tensor, alpha: float, gamma: float
+
+def coarse_focal_loss(
+    predicted_confidence: torch.Tensor,
+    ground_truth_confidence: torch.Tensor,
+    alpha: float,
+    gamma: float,
 ) -> torch.Tensor:
     """
     Computes the mean focal loss for positive and negative matches in confidence scores.
@@ -53,12 +58,18 @@ def coarse_focal_loss(predicted_confidence: torch.Tensor, ground_truth_confidenc
     positive_mask = ground_truth_confidence == 1
     negative_mask = ground_truth_confidence == 0
 
-
-    loss_positive = - alpha * torch.pow(1 - predicted_confidence[positive_mask], gamma) * (predicted_confidence[positive_mask]).log()
-    loss_negative = - (1-alpha) * torch.pow(predicted_confidence[negative_mask], gamma) * (1-predicted_confidence[negative_mask]).log()
+    loss_positive = (
+        -alpha
+        * torch.pow(1 - predicted_confidence[positive_mask], gamma)
+        * (predicted_confidence[positive_mask]).log()
+    )
+    loss_negative = (
+        -(1 - alpha)
+        * torch.pow(predicted_confidence[negative_mask], gamma)
+        * (1 - predicted_confidence[negative_mask]).log()
+    )
 
     return loss_positive.mean() + loss_negative.mean()
-
 
 
 def fine_l2_loss(
@@ -86,9 +97,10 @@ def fine_l2_loss(
     # Return the mean of the L2 distances
     return l2_distances.mean()
 
+
 def fine_l2_loss_with_standard_deviation(
     coordinates_predicted: torch.Tensor, coordinates_ground_truth: torch.Tensor
-) -> torch.Tensor:    
+) -> torch.Tensor:
     """
     Computes the mean L2 distance (Euclidean distance) between the predicted and ground truth coordinates.
 
@@ -105,8 +117,12 @@ def fine_l2_loss_with_standard_deviation(
     """
 
     standard_deviation = coordinates_predicted[:, 2]
-    inverse_standard_deviation = 1./torch.clamp(standard_deviation, min=1e-10)
-    weight = (inverse_standard_deviation/torch.mean(inverse_standard_deviation)).detach()  # normalize and detach
-    l2_distances = ((coordinates_ground_truth - coordinates_predicted[:, :2])**2).sum(-1)
+    inverse_standard_deviation = 1.0 / torch.clamp(standard_deviation, min=1e-10)
+    weight = (
+        inverse_standard_deviation / torch.mean(inverse_standard_deviation)
+    ).detach()  # normalize and detach
+    l2_distances = ((coordinates_ground_truth - coordinates_predicted[:, :2]) ** 2).sum(
+        -1
+    )
 
-    return (l2_distances*weight).mean()
+    return (l2_distances * weight).mean()

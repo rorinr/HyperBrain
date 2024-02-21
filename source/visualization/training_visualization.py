@@ -1,10 +1,9 @@
-
-
 from typing import Iterator, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import torch
+
 
 def plot_grad_flow_hist(named_parameters: Iterator[Tuple[str, torch.Tensor]]) -> None:
     """Plots the gradients flowing through different layers in the network during training.
@@ -38,8 +37,12 @@ def plot_grad_flow_hist(named_parameters: Iterator[Tuple[str, torch.Tensor]]) ->
     plt.ylabel("Average Gradient")
     plt.title("Gradient Flow")
     plt.grid(True)
-    plt.legend([Line2D([0], [0], color="c", lw=4),
-                Line2D([0], [0], color="b", lw=4),
-                Line2D([0], [0], color="k", lw=4)],
-               ['Max-Gradient', 'Mean-Gradient', 'Zero-Gradient'])
+    plt.legend(
+        [
+            Line2D([0], [0], color="c", lw=4),
+            Line2D([0], [0], color="b", lw=4),
+            Line2D([0], [0], color="k", lw=4),
+        ],
+        ["Max-Gradient", "Mean-Gradient", "Zero-Gradient"],
+    )
     plt.show()

@@ -4,6 +4,7 @@ import torch
 
 
 def format_hyperparameter_name(hyperparameters: dict) -> str:
+    # DEPRECATED
     """
     Formats hyperparameters into a string suitable for use as a directory name.
 
@@ -25,19 +26,49 @@ def format_hyperparameter_name(hyperparameters: dict) -> str:
         formatted_params.append(f"{key}{formatted_value}")
     return "_".join(formatted_params)
 
+def generate_next_id(parent_directory):
+    """
+    Scan the parent directory to find the highest existing ID and
+    generate the next ID for the new model directory.
+
+    Args:
+    parent_directory (str): The path to the parent directory containing model directories.
+
+    Returns:
+    int: The next ID to use for a new model directory.
+    """
+    # Ensure the parent directory exists to avoid errors
+    if not os.path.exists(parent_directory):
+        os.makedirs(parent_directory)
+        return 1
+
+    # List all items in the parent directory
+    directories = os.listdir(parent_directory)
+    
+    # Filter out items that are not directories or cannot be converted to integers
+    valid_ids = [int(dir_name) for dir_name in directories if dir_name.isdigit() and os.path.isdir(os.path.join(parent_directory, dir_name))]
+    
+    # Find the highest existing ID if any exist, otherwise start with 0
+    highest_id = max(valid_ids) if valid_ids else 0
+    
+    # Generate the next ID
+    next_id = highest_id + 1
+    
+    return next_id
+
 
 def save_model(
-    models: dict, 
-    hyperparameters: dict, 
-    coarse_loss_history: list, 
-    fine_loss_history: list, 
-    base_path: str = "../../models/"
+    models: dict,
+    hyperparameters: dict,
+    coarse_loss_history: list,
+    fine_loss_history: list,
+    base_path: str = "../../models/",
 ) -> str:
     """
-    Saves the models, hyperparameters, and loss histories in a uniquely named directory based on the hyperparameters.
+    Saves the models, hyperparameters, and loss histories in a uniquely named directory.
 
-    This function formats the hyperparameters into a directory name, checks for existing directories with similar names,
-    and applies versioning to avoid overwriting. Each model's state dictionary, the hyperparameters, and the loss histories 
+    This functio checks for existing directories with similar names,
+    and applies indexing to avoid overwriting. Each model's state dictionary, the hyperparameters, and the loss histories
     are saved in this directory.
 
     Args:
@@ -50,12 +81,9 @@ def save_model(
     Returns:
         str: The path to the directory where the models, hyperparameters, and loss histories are saved.
     """
-    # Format directory name from hyperparameters and implement versioning
-    dir_name = format_hyperparameter_name(hyperparameters)
-    version = 1
-    while os.path.exists(os.path.join(base_path, f"{dir_name}_v{version}")):
-        version += 1
-    final_dir = os.path.join(base_path, f"{dir_name}_v{version}")
+
+    index = generate_next_id(base_path)
+    final_dir = os.path.join(base_path, f"{index}")
 
     # Create the directory and save models
     os.makedirs(final_dir, exist_ok=True)

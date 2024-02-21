@@ -23,7 +23,8 @@ from source.data_processing.patch_processing import (
 from kornia.geometry.transform import warp_affine
 import os
 
-def collate_fn(batch: List[Tuple])-> Tuple[torch.Tensor]:
+
+def collate_fn(batch: List[Tuple]) -> Tuple[torch.Tensor]:
     """
     Custom collate function to handle batches of data with variable-sized relative coordinates.
 
@@ -34,8 +35,14 @@ def collate_fn(batch: List[Tuple])-> Tuple[torch.Tensor]:
         A batch with the relative coordinates packed in a list and other data stacked as usual.
     """
     # Unzip the batch
-    image_1_crops, image_2_crops, match_matrices, relative_coordinates, crop_coordinate_mappings = zip(*batch)
-    
+    (
+        image_1_crops,
+        image_2_crops,
+        match_matrices,
+        relative_coordinates,
+        crop_coordinate_mappings,
+    ) = zip(*batch)
+
     # Stack tensors where possible
     image_1_crops = torch.stack(image_1_crops)
     image_2_crops = torch.stack(image_2_crops)
@@ -45,9 +52,13 @@ def collate_fn(batch: List[Tuple])-> Tuple[torch.Tensor]:
 
     # relative_coords is already a list of tensors of varying sizes; no need to stack
 
-    return image_1_crops, image_2_crops, match_matrices, relative_coordinates, crop_coordinate_mappings
-
-
+    return (
+        image_1_crops,
+        image_2_crops,
+        match_matrices,
+        relative_coordinates,
+        crop_coordinate_mappings,
+    )
 
 
 class BrainDataset(Dataset):
@@ -61,7 +72,7 @@ class BrainDataset(Dataset):
         patch_size: int = 16,
         fine_feature_size: int = 160,
         transform: transforms.transforms.Compose = None,
-        return_crop_coordinates: bool = False
+        return_crop_coordinates: bool = False,
     ) -> None:
         super().__init__()
         self.train = train
@@ -257,14 +268,14 @@ class BrainDataset(Dataset):
 
         if self.return_crop_coordinates:
             return (
-            image_1_crop,
-            image_2_crop,
-            match_matrix,
-            relative_coordinates,
-            crop_coordinate_mapping,
-            crop_position_image_1, 
-            crop_position_image_2
-        )
+                image_1_crop,
+                image_2_crop,
+                match_matrix,
+                relative_coordinates,
+                crop_coordinate_mapping,
+                crop_position_image_1,
+                crop_position_image_2,
+            )
 
         # Create the final output
         # Note: The output is a tuple of 5 elements

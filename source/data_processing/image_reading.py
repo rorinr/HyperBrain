@@ -1,7 +1,9 @@
 from typing import Tuple, Optional
 from PIL import Image
+
 Image.MAX_IMAGE_PIXELS = 9999999999999999
 import os
+
 
 def read_image(
     path: str, size: Optional[Tuple[int, int]] = None, layer: int = None
@@ -33,6 +35,7 @@ def read_image(
 
         return image.copy()
 
+
 def downscale_image(image: Image.Image, downscale_factor: int) -> Image.Image:
     """
     Downscales the given image by the specified factor.
@@ -61,6 +64,7 @@ def downscale_image(image: Image.Image, downscale_factor: int) -> Image.Image:
 
     return downscaled_image
 
+
 def save_image(image: Image.Image, save_dir: str, filename: str) -> None:
     """
     Saves the given image to the specified directory with the given filename.
@@ -86,6 +90,7 @@ def save_image(image: Image.Image, save_dir: str, filename: str) -> None:
     # Save the image
     image.save(save_path)
 
+
 def downscale_folder(image_folder: str, downscale_factor: int) -> None:
     """
     Downscale all images in the given folder by the specified factor.
@@ -100,7 +105,11 @@ def downscale_folder(image_folder: str, downscale_factor: int) -> None:
     # Iterate over all files in the folder
     for filename in os.listdir(image_folder):
         # Check if the file is an image
-        if filename.endswith(".tif") or filename.endswith(".tiff") or filename.endswith(".png"):
+        if (
+            filename.endswith(".tif")
+            or filename.endswith(".tiff")
+            or filename.endswith(".png")
+        ):
             # Read the image
             image_path = os.path.join(image_folder, filename)
             image = read_image(image_path)
@@ -109,4 +118,8 @@ def downscale_folder(image_folder: str, downscale_factor: int) -> None:
             downscaled_image = downscale_image(image, downscale_factor)
 
             # Save the downscaled image
-            save_image(downscaled_image, downscaled_image_folder, f"{filename.split('.')[0]}.tif")
+            save_image(
+                downscaled_image,
+                downscaled_image_folder,
+                f"{filename.split('.')[0]}.tif",
+            )

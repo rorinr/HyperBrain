@@ -6,7 +6,9 @@ from kornia.utils.grid import create_meshgrid
 
 
 class FineMatching(nn.Module):
-    def __init__(self, return_standard_deviation: bool=False, clamp_predictions: bool=False) -> None:
+    def __init__(
+        self, return_standard_deviation: bool = False, clamp_predictions: bool = False
+    ) -> None:
         super().__init__()
         self.return_standard_deviation = return_standard_deviation
         self.clamp_predictions = clamp_predictions
@@ -63,10 +65,21 @@ class FineMatching(nn.Module):
         if not self.return_standard_deviation:
             return predicted_matches
 
-        grid_normalized = create_meshgrid(window_size, window_size, True, heatmap.device).reshape(1, -1, 2)  # [1, window_size_squared, 2]
-        
+        grid_normalized = create_meshgrid(
+            window_size, window_size, True, heatmap.device
+        ).reshape(
+            1, -1, 2
+        )  # [1, window_size_squared, 2]
+
         # compute std over <x, y>
-        variance = torch.sum(grid_normalized**2 * heatmap.view(-1, window_size_squared, 1), dim=1) - predicted_matches**2  # [number_of_matches, 2]
-        standard_deviation = torch.sum(torch.sqrt(torch.clamp(variance, min=1e-10)), -1)  # [number_of_matches]  clamp needed for numerical stability
-        
+        variance = (
+            torch.sum(
+                grid_normalized**2 * heatmap.view(-1, window_size_squared, 1), dim=1
+            )
+            - predicted_matches**2
+        )  # [number_of_matches, 2]
+        standard_deviation = torch.sum(
+            torch.sqrt(torch.clamp(variance, min=1e-10)), -1
+        )  # [number_of_matches]  clamp needed for numerical stability
+
         return torch.cat([predicted_matches, standard_deviation.unsqueeze(1)], -1)

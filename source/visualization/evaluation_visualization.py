@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from typing import List, Dict
 
+
 def plot_loss_curve(
     loss_values: list,
     title: str = "Loss Curve",
@@ -34,7 +35,10 @@ def plot_loss_curve(
     # Show the plot
     plt.show()
 
-def plot_precision_vs_threshold(*predictors: Dict[float, float], labels: List[str]) -> None:
+
+def plot_precision_vs_threshold(
+    *predictors: Dict[float, float], labels: List[str]
+) -> None:
     """
     Plot precision versus pixel threshold for multiple predictors.
 
@@ -51,10 +55,10 @@ def plot_precision_vs_threshold(*predictors: Dict[float, float], labels: List[st
         # Unpack the pixel thresholds and precision scores from each predictor
         thresholds, precisions = zip(*predictor.items())
         plt.plot(thresholds, precisions, label=label)  # Add marker for clarity
-    
-    plt.title('Precision vs Pixel Threshold')  # Title of the plot
-    plt.xlabel('Pixel Threshold')  # Label for the x-axis
-    plt.ylabel('Precision')  # Label for the y-axis
+
+    plt.title("Precision vs Pixel Threshold")  # Title of the plot
+    plt.xlabel("Pixel Threshold")  # Label for the x-axis
+    plt.ylabel("Precision")  # Label for the y-axis
     plt.legend()  # Show legend to identify predictors
     plt.grid(True)  # Add grid for easier reading of the plot
     plt.show()  # Display the plot

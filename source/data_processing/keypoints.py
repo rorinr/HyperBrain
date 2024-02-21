@@ -1,7 +1,10 @@
 import torch
 from typing import Tuple
 from source.data_processing.patch_processing import get_patch_coordinates
-from source.data_processing.transformations import translate_fine_to_coarse, translate_coarse_to_fine
+from source.data_processing.transformations import (
+    translate_fine_to_coarse,
+    translate_coarse_to_fine,
+)
 
 
 def generate_image_grid_coordinates(image_size: Tuple[int, int]) -> torch.Tensor:
@@ -26,8 +29,10 @@ def generate_image_grid_coordinates(image_size: Tuple[int, int]) -> torch.Tensor
 
     return grid_coordinates.float()
 
-def get_patch_mid_coordinates(match_matrix: torch.Tensor,
-                              patch_size: int) -> Tuple[torch.Tensor, torch.Tensor]:
+
+def get_patch_mid_coordinates(
+    match_matrix: torch.Tensor, patch_size: int
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Extract the midpoints of the match matrix.
 
@@ -38,7 +43,7 @@ def get_patch_mid_coordinates(match_matrix: torch.Tensor,
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the coordinates of the midpoints of the matched patches. Both of shape (N, 2).
     """
-    
+
     # Extract indices of matched patches
     crop_1_patch_indices = match_matrix[0].nonzero()[:, 0].cpu()
     crop_2_patch_indices = match_matrix[0].nonzero()[:, 1].cpu()
@@ -57,13 +62,14 @@ def get_patch_mid_coordinates(match_matrix: torch.Tensor,
 
     return crop_1_patch_mid_coordinates, crop_2_patch_mid_coordinates
 
+
 def translate_patch_midpoints_and_refine(
     match_matrix: torch.Tensor,
     patch_size: int,
     relative_coordinates: torch.Tensor,
     image_size: int = 640,
     fine_feature_size: int = 160,
-    window_size: int = 5
+    window_size: int = 5,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Translates the midpoints of matched patches from one coordinate space to another and applies a refinement step.
@@ -80,11 +86,17 @@ def translate_patch_midpoints_and_refine(
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing the coordinates of the midpoints for both crops and the refined coordinates for crop 2. All of shape (N, 2).
     """
     # Calculate midpoints of matched patches
-    crop_1_patch_mid_coordinates, crop_2_patch_mid_coordinates = get_patch_mid_coordinates(match_matrix=match_matrix, patch_size=patch_size)
+    (
+        crop_1_patch_mid_coordinates,
+        crop_2_patch_mid_coordinates,
+    ) = get_patch_mid_coordinates(match_matrix=match_matrix, patch_size=patch_size)
 
     # Translate midpoints to fine feature space and apply relative refinement
     crop_2_patch_mid_coordinates_fine = translate_fine_to_coarse(
-        fine_coordinates=crop_2_patch_mid_coordinates, fine_size=image_size, coarse_size=fine_feature_size)
+        fine_coordinates=crop_2_patch_mid_coordinates,
+        fine_size=image_size,
+        coarse_size=fine_feature_size,
+    )
 
     offset = relative_coordinates.cpu() * ((window_size - 1) / 2)
 
@@ -94,5 +106,8 @@ def translate_patch_midpoints_and_refine(
         fine_size=image_size,
     )
 
-    return crop_1_patch_mid_coordinates, crop_2_patch_mid_coordinates, crop_2_patch_mid_coordinates_refined
-
+    return (
+        crop_1_patch_mid_coordinates,
+        crop_2_patch_mid_coordinates,
+        crop_2_patch_mid_coordinates_refined,
+    )

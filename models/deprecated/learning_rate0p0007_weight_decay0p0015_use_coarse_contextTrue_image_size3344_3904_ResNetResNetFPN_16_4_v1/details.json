@@ -1,0 +1,1 @@
+{"learning_rate": 0.0007, "weight_decay": 0.0015, "use_coarse_context": true, "image_size": "3344_3904", "ResNet": "ResNetFPN_16_4"}
