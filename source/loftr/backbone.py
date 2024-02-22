@@ -438,13 +438,17 @@ class ResNetFPN_16_4(nn.Module):
         )
 
         # Outputs coarse feature space, red in loftr paper
-        self.layer3_outconv1 = nn.Conv2d(
-            block_dimensions[2],
-            block_dimensions[3],
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=False,
+        self.layer3_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[2],
+                block_dimensions[3],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[3]),
+            nn.LeakyReLU(),
         )
 
         self.layer3_outconv2 = nn.Sequential(
@@ -469,13 +473,17 @@ class ResNetFPN_16_4(nn.Module):
         )
 
         # Upsampling of layer2's output (just upsampling channels, H and W stay same)
-        self.layer2_outconv1 = nn.Conv2d(
-            block_dimensions[1],
-            block_dimensions[2],
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=False,
+        self.layer2_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[1],
+                block_dimensions[2],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[2]),
+            nn.LeakyReLU(),
         )
         # Process (layer2_outconv1's output + resized layer3_outconv's output)
         self.layer2_outconv2 = nn.Sequential(

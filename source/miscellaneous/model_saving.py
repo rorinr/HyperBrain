@@ -26,6 +26,7 @@ def format_hyperparameter_name(hyperparameters: dict) -> str:
         formatted_params.append(f"{key}{formatted_value}")
     return "_".join(formatted_params)
 
+
 def generate_next_id(parent_directory):
     """
     Scan the parent directory to find the highest existing ID and
@@ -44,16 +45,21 @@ def generate_next_id(parent_directory):
 
     # List all items in the parent directory
     directories = os.listdir(parent_directory)
-    
+
     # Filter out items that are not directories or cannot be converted to integers
-    valid_ids = [int(dir_name) for dir_name in directories if dir_name.isdigit() and os.path.isdir(os.path.join(parent_directory, dir_name))]
-    
+    valid_ids = [
+        int(dir_name)
+        for dir_name in directories
+        if dir_name.isdigit()
+        and os.path.isdir(os.path.join(parent_directory, dir_name))
+    ]
+
     # Find the highest existing ID if any exist, otherwise start with 0
     highest_id = max(valid_ids) if valid_ids else 0
-    
+
     # Generate the next ID
     next_id = highest_id + 1
-    
+
     return next_id
 
 

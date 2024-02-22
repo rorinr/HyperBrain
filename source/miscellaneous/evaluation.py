@@ -148,7 +148,7 @@ def predict_test_image_pair(
     fine_preprocess: torch.nn.Module,
     fine_loftr: torch.nn.Module,
     fine_matching: torch.nn.Module,
-    return_not_refined: bool=False,
+    return_not_refined: bool = False,
 ):
     """
     Predicts the matching keypoints between two test images in a patch-based manner.
@@ -181,6 +181,7 @@ def predict_test_image_pair(
     with torch.no_grad():
         for y in torch.arange(486 + padding, 8000 - crop_size - padding, crop_size):
             for x in torch.arange(496 + padding, 3463 - crop_size - padding, crop_size):
+                print(x,y)
                 crop_1 = crop_image(image_1, (x, y), crop_size)
 
                 crop_2_position = deformation[y, x]
@@ -230,6 +231,8 @@ def predict_test_image_pair(
                     fine_height=160,
                     coarse_height=40,
                 )
+
+                print(fine_image_feature_1_unfold.device, fine_image_feature_2_unfold.device)
 
                 fine_image_feature_1_unfold, fine_image_feature_2_unfold = fine_loftr(
                     fine_image_feature_1_unfold, fine_image_feature_2_unfold
@@ -295,9 +298,13 @@ def evaluate_test_image_pair(
     number_of_matches = matches.shape[0]
 
     # Compute the average distance between predicted matches and the ground truth
-    average_distance = compute_euclidean_distances(
-        predicted_matches=matches.float(), coordinate_mapping=deformation
-    ).mean().item()
+    average_distance = (
+        compute_euclidean_distances(
+            predicted_matches=matches.float(), coordinate_mapping=deformation
+        )
+        .mean()
+        .item()
+    )
 
     # Compute precision at different pixel thresholds
     match_precision = {}
@@ -335,8 +342,8 @@ def evaluate_test_image_pair(
         entropy,
     )
 
-def read_deformation() -> torch.Tensor:
 
+def read_deformation() -> torch.Tensor:
     # Read deformation
     deformation_path = (
         r"C:\Users\robin\Desktop\temp\temp\0524-0525_deformation_low_scale.h5"
@@ -352,7 +359,9 @@ def read_deformation() -> torch.Tensor:
 
 
 def evaluate_model(
-    model_names: List[str], confidence_thresholds: List[float], block_dimensions: List[list]
+    model_names: List[str],
+    confidence_thresholds: List[float],
+    block_dimensions: List[list],
 ) -> Dict:
     """
     Evaluates multiple models using the given parameters.
@@ -384,7 +393,9 @@ def evaluate_model(
 
     evaluation_metrics_per_model = {}
 
-    for model_name, confidence_threshold, block_dimension in zip(model_names, confidence_thresholds, block_dimensions):
+    for model_name, confidence_threshold, block_dimension in zip(
+        model_names, confidence_thresholds, block_dimensions
+    ):
         fine_feature_size = block_dimension[1]
         coarse_feature_size = block_dimension[-1]
         backbone = ResNetFPN_16_4(block_dimensions=block_dimension).cuda()
@@ -402,7 +413,7 @@ def evaluate_model(
         )
 
         coarse_matcher = CoarseMatching(
-            temperature=0.1, confidence_threshold=confidence_threshold
+            temperature=0.2, confidence_threshold=confidence_threshold
         ).cuda()
 
         fine_preprocess = FinePreprocess(
@@ -417,7 +428,9 @@ def evaluate_model(
             number_of_heads=8,
             layer_names=["self", "cross"],
         ).cuda()
-        fine_loftr.load_state_dict(torch.load(f"../../models/{model_name}/fine_loftr.pt"))
+        fine_loftr.load_state_dict(
+            torch.load(f"../../models/{model_name}/fine_loftr.pt")
+        )
 
         fine_matching = FineMatching(clamp_predictions=False).cuda()
 
@@ -443,9 +456,17 @@ def evaluate_model(
             entropy,
         ) = evaluate_test_image_pair(matches_image_1, matches_image_2, deformation)
 
-        evaluation_metrics = {"confidence_threshold": confidence_threshold, "number_of_matches": number_of_matches, "average_distance": average_distance, "auc": auc, "entropy": entropy, "matches_per_patch": matches_per_patch.tolist(), "match_precision": match_precision}
+        evaluation_metrics = {
+            "confidence_threshold": confidence_threshold,
+            "number_of_matches": number_of_matches,
+            "average_distance": average_distance,
+            "auc": auc,
+            "entropy": entropy,
+            "matches_per_patch": matches_per_patch.tolist(),
+            "match_precision": match_precision,
+        }
         evaluation_metrics_per_model[model_name] = evaluation_metrics
-        
+
         base_path = "../../models"
         final_dir = os.path.join(base_path, f"{model_name}")
         with open(os.path.join(final_dir, "evaluation_metrics.json"), "w") as f:
