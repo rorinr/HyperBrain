@@ -121,6 +121,7 @@ class BrainDataset(Dataset):
         image_2 = read_image(
             os.path.join(self.images_directory, self.image_names[index + 1])
         )
+        print(self.image_names[index], self.image_names[index + 1])
 
         image_1 = transforms.ToTensor()(image_1)
         image_2 = transforms.ToTensor()(image_2)

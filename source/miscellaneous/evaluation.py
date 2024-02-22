@@ -17,6 +17,8 @@ import os
 from source.miscellaneous.model_saving import generate_next_id
 import json
 from typing import List, Dict
+from torchvision.transforms import v2
+
 
 
 def compute_euclidean_distances(
@@ -149,6 +151,7 @@ def predict_test_image_pair(
     fine_loftr: torch.nn.Module,
     fine_matching: torch.nn.Module,
     return_not_refined: bool = False,
+    normalize_images: bool = True
 ):
     """
     Predicts the matching keypoints between two test images in a patch-based manner.
@@ -165,6 +168,7 @@ def predict_test_image_pair(
         fine_loftr (torch.nn.Module): The fine LoFTR module.
         fine_matching (torch.nn.Module): The fine matching module.
         return_not_refined (bool, optional): Whether to return the keypoints without refinement. Defaults to False.
+        normalize_images (bool, optional): Whether to normalize the keypoints. Defaults to True.
 
     Returns:
         torch.Tensor: The keypoints in the first image.
@@ -178,10 +182,12 @@ def predict_test_image_pair(
     matches_image_2 = []
     matches_image_2_not_refined = []
 
+    if normalize_images:
+        normalize = v2.Normalize(mean=[0.594], std=[0.204])
+
     with torch.no_grad():
         for y in torch.arange(486 + padding, 8000 - crop_size - padding, crop_size):
             for x in torch.arange(496 + padding, 3463 - crop_size - padding, crop_size):
-                print(x,y)
                 crop_1 = crop_image(image_1, (x, y), crop_size)
 
                 crop_2_position = deformation[y, x]
@@ -196,6 +202,10 @@ def predict_test_image_pair(
                 crop_coordinate_mapping = crop_coordinate_mapping.cuda().unsqueeze(0)
                 crop_1 = crop_1.cuda().unsqueeze(0)
                 crop_2 = crop_2.cuda().unsqueeze(0)
+
+                if normalize_images:
+                    crop_1 = normalize(crop_1)
+                    crop_2 = normalize(crop_2)
 
                 coarse_image_feature_1, fine_image_feature_1 = backbone(crop_1)
                 coarse_image_feature_2, fine_image_feature_2 = backbone(crop_2)
@@ -232,7 +242,8 @@ def predict_test_image_pair(
                     coarse_height=40,
                 )
 
-                print(fine_image_feature_1_unfold.device, fine_image_feature_2_unfold.device)
+                fine_image_feature_1_unfold = fine_image_feature_1_unfold.to("cuda")
+                fine_image_feature_2_unfold = fine_image_feature_2_unfold.to("cuda")
 
                 fine_image_feature_1_unfold, fine_image_feature_2_unfold = fine_loftr(
                     fine_image_feature_1_unfold, fine_image_feature_2_unfold
@@ -362,6 +373,7 @@ def evaluate_model(
     model_names: List[str],
     confidence_thresholds: List[float],
     block_dimensions: List[list],
+    temperatures: List[float]
 ) -> Dict:
     """
     Evaluates multiple models using the given parameters.
@@ -370,6 +382,7 @@ def evaluate_model(
         model_names (List[str]): A list of model names.
         confidence_thresholds (List[float]): A list of confidence thresholds.
         block_dimensions (List[list]): A list of block dimensions.
+        temperatures (List[float]): A list of temperatures.
 
     Returns:
         Dict[str, dict]: A dictionary containing evaluation metrics for each model.
@@ -393,8 +406,8 @@ def evaluate_model(
 
     evaluation_metrics_per_model = {}
 
-    for model_name, confidence_threshold, block_dimension in zip(
-        model_names, confidence_thresholds, block_dimensions
+    for model_name, confidence_threshold, block_dimension, temperature in zip(
+        model_names, confidence_thresholds, block_dimensions, temperatures
     ):
         fine_feature_size = block_dimension[1]
         coarse_feature_size = block_dimension[-1]
@@ -413,7 +426,7 @@ def evaluate_model(
         )
 
         coarse_matcher = CoarseMatching(
-            temperature=0.2, confidence_threshold=confidence_threshold
+            temperature=temperature, confidence_threshold=confidence_threshold
         ).cuda()
 
         fine_preprocess = FinePreprocess(
