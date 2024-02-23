@@ -40,8 +40,8 @@ class FinePreprocess(nn.Module):
         fine_image_feature_1: torch.Tensor,
         fine_image_feature_2: torch.Tensor,
         coarse_matches: dict,
-        fine_height: int,
-        coarse_height: int,
+        fine_height_width: int,
+        coarse_height_width: int,
     ) -> torch.Tensor:
         """
         Forward pass of the FineMatching module that processes fine-grained image features.
@@ -57,15 +57,15 @@ class FinePreprocess(nn.Module):
             fine_image_feature_1 (torch.Tensor): Fine feature map of the first image.
             fine_image_feature_2 (torch.Tensor): Fine feature map of the second image.
             coarse_matches (dict): Dictionary containing indices of matched features in the coarse feature maps.
-            fine_height (int): Height of the fine feature map, assuming it is square.
-            coarse_height (int): Height of the coarse feature map, assuming it is square.
+            fine_height_width (int): Height of the fine feature map, assuming it is square.
+            coarse_height_width (int): Height of the coarse feature map, assuming it is square.
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple of two tensors, each representing the unfolded fine features
                                             of the first and second images, potentially enriched with coarse feature context.
         """
 
-        stride = fine_height // coarse_height  # usually = 4
+        stride = fine_height_width // coarse_height_width  # usually = 4
 
         # If no matches found
         if coarse_matches["batch_indices"].shape[0] == 0:

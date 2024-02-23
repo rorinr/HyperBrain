@@ -210,6 +210,9 @@ def predict_test_image_pair(
                 coarse_image_feature_1, fine_image_feature_1 = backbone(crop_1)
                 coarse_image_feature_2, fine_image_feature_2 = backbone(crop_2)
 
+                fine_height_width = fine_image_feature_1.shape[-1]
+                coarse_height_width = coarse_image_feature_1.shape[-1]
+
                 coarse_image_feature_1 = positional_encoding(coarse_image_feature_1)
                 coarse_image_feature_2 = positional_encoding(coarse_image_feature_2)
 
@@ -238,8 +241,8 @@ def predict_test_image_pair(
                     fine_image_feature_1=fine_image_feature_1,
                     fine_image_feature_2=fine_image_feature_2,
                     coarse_matches=coarse_matches_predicted,
-                    fine_height=160,
-                    coarse_height=40,
+                    fine_height_width=fine_height_width,
+                    coarse_height_width=coarse_height_width
                 )
 
                 fine_image_feature_1_unfold = fine_image_feature_1_unfold.to("cuda")
@@ -264,6 +267,7 @@ def predict_test_image_pair(
                     match_matrix=match_matrix_predicted,
                     patch_size=16,
                     relative_coordinates=predicted_relative_coordinates,
+                    fine_feature_size=fine_image_feature_1.shape[-1]  # 160 or 320. Removed hardcoding lately
                 )
                 crop_1_patch_mid_coordinates += torch.Tensor([x, y]).long()
                 crop_2_patch_mid_coordinates += crop_2_position

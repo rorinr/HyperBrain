@@ -66,11 +66,11 @@ class BrainDataset(Dataset):
         self,
         images_directory: str,
         train: bool,
-        transformation_threshold: float = 0.1,
-        crop_size: int = 640,
-        max_translation_shift: int = 50,
-        patch_size: int = 16,
-        fine_feature_size: int = 160,
+        transformation_threshold: float,
+        crop_size: int,
+        max_translation_shift: int,
+        patch_size: int,
+        fine_height_width: int,
         transform: transforms.transforms.Compose = None,
         return_crop_coordinates: bool = False,
     ) -> None:
@@ -83,7 +83,7 @@ class BrainDataset(Dataset):
         self.crop_size = crop_size
         self.max_translation_shift = max_translation_shift
         self.patch_size = patch_size
-        self.fine_feature_size = fine_feature_size
+        self.fine_height_width = fine_height_width
         self.return_crop_coordinates = return_crop_coordinates
 
     def __len__(self) -> int:
@@ -230,18 +230,18 @@ class BrainDataset(Dataset):
         # Get mid point of patches in crop 1 and crop 2
         patch_size_half = self.patch_size // 2
         crop_1_patch_mid_indices = (
-            get_patch_coordinates(patch_indices=crop_1_patch_indices)
+            get_patch_coordinates(patch_indices=crop_1_patch_indices, patch_size=self.patch_size, num_patches_per_side=self.crop_size // self.patch_size)
             + torch.Tensor([patch_size_half, patch_size_half]).long()
         )
 
         crop_2_patch_mid_indices = (
-            get_patch_coordinates(patch_indices=crop_2_patch_indices)
+            get_patch_coordinates(patch_indices=crop_2_patch_indices, patch_size=self.patch_size, num_patches_per_side=self.crop_size // self.patch_size)
             + torch.Tensor([patch_size_half, patch_size_half]).long()
         )
 
         # Translate the mid points of patches in crop 2 to the fine feature level
         crop_2_patch_mid_indices_fine = translate_fine_to_coarse(
-            fine_coordinates=crop_2_patch_mid_indices, coarse_size=160, fine_size=640
+            fine_coordinates=crop_2_patch_mid_indices, coarse_size=self.fine_height_width, fine_size=self.crop_size
         )
 
         # Note: An element in crop_2_patch_mid_indices(_fine) doesnt necessarily correspond to the same pixel as the element in crop_1_patch_mid_indices(_fine)
@@ -254,7 +254,7 @@ class BrainDataset(Dataset):
         ]
         crop_1_mid_pixels_transformed_fine = translate_fine_to_coarse(
             crop_1_mid_pixels_transformed,
-            coarse_size=self.fine_feature_size,
+            coarse_size=self.fine_height_width,
             fine_size=self.crop_size,
         )
 

@@ -51,12 +51,13 @@ def get_patch_mid_coordinates(
     half_patch_size = patch_size // 2
 
     # Calculate midpoints of matched patches
+    num_patches_per_side = int(match_matrix.shape[-1] ** 0.5)
     crop_1_patch_mid_coordinates = (
-        get_patch_coordinates(patch_indices=crop_1_patch_indices)
+        get_patch_coordinates(patch_indices=crop_1_patch_indices, patch_size=patch_size, num_patches_per_side=num_patches_per_side)
         + torch.Tensor([half_patch_size, half_patch_size]).long()
     )
     crop_2_patch_mid_coordinates = (
-        get_patch_coordinates(patch_indices=crop_2_patch_indices)
+        get_patch_coordinates(patch_indices=crop_2_patch_indices, patch_size=patch_size, num_patches_per_side=num_patches_per_side)
         + torch.Tensor([half_patch_size, half_patch_size]).long()
     )
 
@@ -67,8 +68,8 @@ def translate_patch_midpoints_and_refine(
     match_matrix: torch.Tensor,
     patch_size: int,
     relative_coordinates: torch.Tensor,
+    fine_feature_size: int,
     image_size: int = 640,
-    fine_feature_size: int = 160,
     window_size: int = 5,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
@@ -79,7 +80,7 @@ def translate_patch_midpoints_and_refine(
         patch_size (int): The size of each patch.
         relative_coordinates (torch.Tensor): The (predicted) relative coordinates.
         image_size (int, optional): The size of the image (height, width). Defaults to 640.
-        fine_feature_size (int, optional): The size of the fine feature space. Defaults to 160.
+        fine_feature_size (int, optional): The size of the fine feature space.
         window_size (int, optional): The size of the window for the relative movement. Defaults to 5.
 
     Returns:
