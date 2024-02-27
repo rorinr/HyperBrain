@@ -55,19 +55,13 @@ def coarse_focal_loss(
     Returns:
         torch.Tensor: The weighted sum of mean focal losses for positive and negative matches.
     """
+    predicted_confidence = torch.clamp(predicted_confidence, 1e-6, 1 - 1e-6)
+
     positive_mask = ground_truth_confidence == 1
     negative_mask = ground_truth_confidence == 0
 
-    loss_positive = (
-        -alpha
-        * torch.pow(1 - predicted_confidence[positive_mask], gamma)
-        * (predicted_confidence[positive_mask]).log()
-    )
-    loss_negative = (
-        -(1 - alpha)
-        * torch.pow(predicted_confidence[negative_mask], gamma)
-        * (1 - predicted_confidence[negative_mask]).log()
-    )
+    loss_positive = -alpha * torch.pow(1 - predicted_confidence[positive_mask], gamma) * (predicted_confidence[positive_mask]).log()
+    loss_negative = -alpha * torch.pow(predicted_confidence[negative_mask], gamma) * (1 - predicted_confidence[negative_mask]).log()
 
     return loss_positive.mean() + loss_negative.mean()
 

@@ -1,5 +1,5 @@
 import torch
-from source.loftr.backbone import ResNetFPN_16_4
+from source.loftr.backbone import ResNetFPN_16_4, ResNetFPN_8_2
 from source.loftr.positional_encoding import PositionalEncoding
 from source.loftr.transformer import LocalFeatureTransformer
 from source.loftr.coarse_matching import CoarseMatching
@@ -150,6 +150,8 @@ def predict_test_image_pair(
     fine_preprocess: torch.nn.Module,
     fine_loftr: torch.nn.Module,
     fine_matching: torch.nn.Module,
+    crop_size: int,
+    patch_size: int,
     return_not_refined: bool = False,
     normalize_images: bool = True
 ):
@@ -175,7 +177,6 @@ def predict_test_image_pair(
         torch.Tensor: The keypoints in the second image.
         torch.Tensor (optional): The keypoints in the second image without refinement.
     """
-    crop_size = 640
     padding = 50
 
     matches_image_1 = []
@@ -192,6 +193,8 @@ def predict_test_image_pair(
 
                 crop_2_position = deformation[y, x]
                 crop_2 = crop_image(image_2, crop_2_position, crop_size)
+                if crop_1.shape[-1] != crop_size or crop_1.shape[-2] != crop_size or crop_2.shape[-1] != crop_size or crop_2.shape[-2] != crop_size:
+                    continue
 
                 crop_coordinate_mapping = create_crop_coordinate_mapping(
                     deformation,
@@ -265,7 +268,7 @@ def predict_test_image_pair(
                     crop_2_patch_mid_coordinates_refined,
                 ) = translate_patch_midpoints_and_refine(
                     match_matrix=match_matrix_predicted,
-                    patch_size=16,
+                    patch_size=patch_size,
                     relative_coordinates=predicted_relative_coordinates,
                     fine_feature_size=fine_image_feature_1.shape[-1]  # 160 or 320. Removed hardcoding lately
                 )
@@ -377,7 +380,9 @@ def evaluate_model(
     model_names: List[str],
     confidence_thresholds: List[float],
     block_dimensions: List[list],
-    temperatures: List[float]
+    temperatures: List[float],
+    patch_size: int,
+    crop_size: int
 ) -> Dict:
     """
     Evaluates multiple models using the given parameters.
@@ -413,9 +418,16 @@ def evaluate_model(
     for model_name, confidence_threshold, block_dimension, temperature in zip(
         model_names, confidence_thresholds, block_dimensions, temperatures
     ):
-        fine_feature_size = block_dimension[1]
+        
+        if len(block_dimension) == 3:
+            fine_feature_size = block_dimension[0]
+            backbone = ResNetFPN_8_2(block_dimensions=block_dimension).cuda()
+
+        elif len(block_dimension) == 4:
+            fine_feature_size = block_dimension[1]
+            backbone = ResNetFPN_16_4(block_dimensions=block_dimension).cuda()
+      
         coarse_feature_size = block_dimension[-1]
-        backbone = ResNetFPN_16_4(block_dimensions=block_dimension).cuda()
         backbone.load_state_dict(torch.load(f"../../models/{model_name}/backbone.pt"))
 
         positional_encoding = PositionalEncoding(coarse_feature_size).cuda()
@@ -462,6 +474,8 @@ def evaluate_model(
             fine_preprocess=fine_preprocess,
             fine_loftr=fine_loftr,
             fine_matching=fine_matching,
+            crop_size=crop_size,
+            patch_size=patch_size
         )
 
         (

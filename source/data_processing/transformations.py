@@ -10,7 +10,7 @@ def sample_random_affine_matrix(range_limit: float) -> torch.Tensor:
                              defining the uniform distribution interval from -range_limit to range_limit.
 
     Returns:
-        torch.Tensor: A 3x3 affine transformation matrix with random elements within the specified range.
+        torch.Tensor: A 2x3 affine transformation matrix with random elements within the specified range.
     """
     affine_matrix = torch.cat(
         [torch.rand((2, 2)).uniform_(-range_limit, range_limit), torch.zeros((2, 1))],
