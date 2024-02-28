@@ -35,6 +35,10 @@ class FineMatching(nn.Module):
             window_size_squared,
             fine_feature_size,
         ) = fine_image_feature_1.shape
+
+        if number_of_matches == 0:  # Corner case: no matches found
+            return 
+
         window_size = int(window_size_squared**0.5)
 
         # Select mid feature of each window in fine_image_feature_1

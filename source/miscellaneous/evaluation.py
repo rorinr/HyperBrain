@@ -251,9 +251,8 @@ def predict_test_image_pair(
                 fine_image_feature_1_unfold = fine_image_feature_1_unfold.to("cuda")
                 fine_image_feature_2_unfold = fine_image_feature_2_unfold.to("cuda")
 
-                fine_image_feature_1_unfold, fine_image_feature_2_unfold = fine_loftr(
-                    fine_image_feature_1_unfold, fine_image_feature_2_unfold
-                )
+                if fine_image_feature_1_unfold.size(0) == 0:
+                    continue
 
                 predicted_relative_coordinates = fine_matching(
                     fine_image_feature_1_unfold, fine_image_feature_2_unfold

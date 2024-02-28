@@ -202,8 +202,8 @@ class CoarseMatching(nn.Module):
             * (confidence_matrix == confidence_matrix.max(dim=1, keepdim=True)[0])
         )
 
-        if match_mask.sum() == 0:
-            print("No matches found")
+        # if match_mask.sum() == 0:
+            # print("No matches found")
 
         # 3. Extract the matching confidence values and their indices
         coarse_matches = self.extract_matching_confidences(
