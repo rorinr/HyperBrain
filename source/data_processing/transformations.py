@@ -10,7 +10,7 @@ def sample_random_affine_matrix(range_limit: float) -> torch.Tensor:
                              defining the uniform distribution interval from -range_limit to range_limit.
 
     Returns:
-        torch.Tensor: A 2x3 affine transformation matrix with random elements within the specified range.
+        torch.Tensor: A 3x3 affine transformation matrix with random elements within the specified range.
     """
     affine_matrix = torch.cat(
         [torch.rand((2, 2)).uniform_(-range_limit, range_limit), torch.zeros((2, 1))],
@@ -18,42 +18,56 @@ def sample_random_affine_matrix(range_limit: float) -> torch.Tensor:
     ).unsqueeze(0)
     affine_matrix[0, 0, 0] += 1
     affine_matrix[0, 1, 1] += 1
+    affine_matrix = torch.cat([affine_matrix, torch.tensor([[[0, 0, 1]]])], dim=1)  # Add the last row
     return affine_matrix
 
+def sample_random_perspective_matrix(range_limit_affine: float, range_limit_perspective: float) -> torch.Tensor:
+    """
+    Generate a random perspective transformation matrix.
+
+    Args:
+        range_limit_affine (float): The range limit for the affine transformation.
+        range_limit_perspective (float): The range limit for the perspective transformation.
+
+    Returns:
+        torch.Tensor: The generated perspective transformation matrix.
+    """
+    transformation_matrix = torch.column_stack([sample_random_affine_matrix(range_limit_affine)[:, :-1], torch.rand((1, 1, 3)).uniform_(-range_limit_perspective, range_limit_perspective)])[0]
+    transformation_matrix[-1, -1] = 1
+    return transformation_matrix.unsqueeze(0)
 
 def transform_grid_coordinates(
     grid_coordinates: torch.Tensor, transformation_matrix: torch.Tensor
 ) -> torch.Tensor:
     """
-    Apply an affine transformation to a grid of image coordinates.
+    Apply a transformation (affine or perspective) to a grid of image coordinates.
 
-    This function transforms each coordinate in the provided grid according to the specified affine transformation matrix.
+    This function transforms each coordinate in the provided grid according to the specified transformation matrix.
+    It supports both affine (2x3) and perspective (3x3) transformation matrices.
 
     Args:
         grid_coordinates (torch.Tensor): A tensor of shape (height, width, 2) representing the grid of image coordinates.
-        transformation_matrix (torch.Tensor): A 2x3 affine transformation matrix.
+        transformation_matrix (torch.Tensor): A 2x3 affine or 3x3 perspective transformation matrix.
 
     Returns:
         torch.Tensor: A tensor of the transformed grid coordinates, maintaining the original shape (height, width, 2).
     """
     original_shape = grid_coordinates.shape
+    # Flatten the grid coordinates to shape (-1, 2) for easier matrix multiplication
     flat_grid_coordinates = grid_coordinates.view(-1, 2)
 
     # Create homogeneous coordinates by appending a ones column
-    ones_column = torch.ones(
-        (flat_grid_coordinates.shape[0], 1), device=flat_grid_coordinates.device
-    )
+    ones_column = torch.ones(flat_grid_coordinates.shape[0], 1, device=flat_grid_coordinates.device)
     homogeneous_coordinates = torch.cat([flat_grid_coordinates, ones_column], dim=1)
 
-    # Apply the affine transformation
-    transformed_coordinates_homogeneous = torch.mm(
-        transformation_matrix, homogeneous_coordinates.t()
-    ).t()
+    # Apply the transformation
+    transformed_coordinates_homogeneous = torch.mm(homogeneous_coordinates, transformation_matrix.t())
+
+    # Convert from homogeneous back to Cartesian coordinates
+    transformed_coordinates = transformed_coordinates_homogeneous[:, :2] / transformed_coordinates_homogeneous[:, 2:3]
 
     # Reshape back to the original grid shape
-    transformed_grid_coordinates = transformed_coordinates_homogeneous[:, :2].view(
-        original_shape
-    )
+    transformed_grid_coordinates = transformed_coordinates.view(original_shape)
 
     return transformed_grid_coordinates
 

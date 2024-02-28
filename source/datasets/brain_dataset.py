@@ -2,11 +2,12 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset
 from torchvision import transforms
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from source.data_processing.image_reading import read_image
 from source.data_processing.keypoints import generate_image_grid_coordinates
 from source.data_processing.transformations import (
     sample_random_affine_matrix,
+    sample_random_perspective_matrix,
     transform_grid_coordinates,
     translate_fine_to_coarse,
     get_relative_coordinates,
@@ -20,9 +21,8 @@ from source.data_processing.patch_processing import (
     create_match_matrix,
     get_patch_coordinates,
 )
-from kornia.geometry.transform import warp_affine
+from kornia.geometry.transform import warp_perspective
 import os
-
 
 def collate_fn(batch: List[Tuple]) -> Tuple[torch.Tensor]:
     """
@@ -66,11 +66,12 @@ class BrainDataset(Dataset):
         self,
         images_directory: str,
         train: bool,
-        transformation_threshold: float,
+        affine_transformation_range: float,
         crop_size: int,
         max_translation_shift: int,
         patch_size: int,
         fine_height_width: int,
+        perspective_transformation_range: Optional[float] = None,
         transform: transforms.transforms.Compose = None,
         return_crop_coordinates: bool = False,
     ) -> None:
@@ -79,12 +80,13 @@ class BrainDataset(Dataset):
         self.image_names = self._get_image_names(images_directory=images_directory)
         self.images_directory = images_directory
         self.transform = transform
-        self.transformation_threshold = transformation_threshold
+        self.affine_transformation_range = affine_transformation_range
         self.crop_size = crop_size
         self.max_translation_shift = max_translation_shift
         self.patch_size = patch_size
         self.fine_height_width = fine_height_width
         self.return_crop_coordinates = return_crop_coordinates
+        self.perspective_transformation_range = perspective_transformation_range
 
     def __len__(self) -> int:
         """
@@ -162,11 +164,16 @@ class BrainDataset(Dataset):
             image_1 = self.transform(image_1)
             image_2 = self.transform(image_2)
 
-        # Apply random affine transformation to image 2
-        transformation_matrix = sample_random_affine_matrix(
-            range_limit=self.transformation_threshold
-        )
-        image_2_transformed = warp_affine(
+        
+        if self.perspective_transformation_range:
+            transformation_matrix = sample_random_perspective_matrix(range_limit_affine=self.affine_transformation_range, range_limit_perspective=self.perspective_transformation_range)
+        
+        else:
+            transformation_matrix = sample_random_affine_matrix(
+                range_limit=self.affine_transformation_range
+            )
+
+        image_2_transformed = warp_perspective(
             src=image_2.unsqueeze(0),
             M=transformation_matrix,
             dsize=image_2_size,
