@@ -199,14 +199,19 @@ class ResNetFPN_8_2(nn.Module):
         )
 
         # Upsampling of layer2's output (just upsampling channels, H and W stay same)
-        self.layer2_outconv1 = nn.Conv2d(
-            block_dimensions[1],
-            block_dimensions[2],
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=False,
+        self.layer2_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[1],
+                block_dimensions[2],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False
+                ),
+            nn.BatchNorm2d(block_dimensions[2]),
+            nn.LeakyReLU()
         )
+
         # Process (layer2_outconv1's output + resized layer3_outconv's output)
         self.layer2_outconv2 = nn.Sequential(
             nn.Conv2d(
@@ -227,17 +232,24 @@ class ResNetFPN_8_2(nn.Module):
                 padding=1,
                 bias=False,
             ),
+            nn.BatchNorm2d(block_dimensions[1]),
+            nn.LeakyReLU()          
         )
 
         # Upsampling of layer1's output (just upsampling channels, H and W stay same) so that we can add it with x2_out_2x
-        self.layer1_outconv1 = nn.Conv2d(
-            block_dimensions[0],
-            block_dimensions[1],
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            bias=False,
+        self.layer1_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[0],
+                block_dimensions[1],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False
+                ),
+            nn.BatchNorm2d(block_dimensions[1]),
+            nn.LeakyReLU()
         )
+
         # Process (layer1_outconv1's output + resized layer2_outconv2's output)
         self.layer1_outconv2 = nn.Sequential(
             nn.Conv2d(

@@ -476,8 +476,8 @@ def evaluate_model(
             crop_size=crop_size,
             patch_size=patch_size
         )
-        torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace(".", "")}.pt")
-        torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace(".", "")}.pt")
+        torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
+        torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
 
         (
             number_of_matches,
