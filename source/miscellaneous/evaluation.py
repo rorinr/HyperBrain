@@ -269,7 +269,7 @@ def predict_test_image_pair(
                     match_matrix=match_matrix_predicted,
                     patch_size=patch_size,
                     relative_coordinates=predicted_relative_coordinates,
-                    fine_feature_size=fine_image_feature_1.shape[-1]  # 160 or 320. Removed hardcoding lately
+                    fine_feature_size=fine_image_feature_1.shape[-1]
                 )
                 crop_1_patch_mid_coordinates += torch.Tensor([x, y]).long()
                 crop_2_patch_mid_coordinates += crop_2_position
@@ -476,6 +476,8 @@ def evaluate_model(
             crop_size=crop_size,
             patch_size=patch_size
         )
+        torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace(".", "")}.pt")
+        torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace(".", "")}.pt")
 
         (
             number_of_matches,
