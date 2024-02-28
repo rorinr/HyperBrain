@@ -44,6 +44,7 @@ def coarse_focal_loss(
 ) -> torch.Tensor:
     """
     Computes the mean focal loss for positive and negative matches in confidence scores.
+    This is the focal loss function used in the original loftr paper, which is different from the official implementation.
 
     Args:
         predicted_confidence (torch.Tensor): Tensor containing predicted confidence scores, shape (N, P0, P1).
@@ -62,6 +63,36 @@ def coarse_focal_loss(
 
     loss_positive = -alpha * torch.pow(1 - predicted_confidence[positive_mask], gamma) * (predicted_confidence[positive_mask]).log()
     loss_negative = -alpha * torch.pow(predicted_confidence[negative_mask], gamma) * (1 - predicted_confidence[negative_mask]).log()
+
+    return loss_positive.mean() + loss_negative.mean()
+
+def coarse_official_focal_loss(
+    predicted_confidence: torch.Tensor,
+    ground_truth_confidence: torch.Tensor,
+    alpha: float,
+    gamma: float,
+) -> torch.Tensor:
+    """
+    Computes the mean focal loss for positive and negative matches in confidence scores.
+    This function is the official implementation of the focal loss, which is not used in the original loftr paper.
+
+    Args:
+        predicted_confidence (torch.Tensor): Tensor containing predicted confidence scores, shape (N, P0, P1).
+        ground_truth_confidence (torch.Tensor): Tensor containing ground truth for confidence scores, shape (N, P0, P1).
+        N represents the number of matches, and P0, P1 are the number of patches in each image.
+        alpha (float): Focal loss alpha parameter.
+        gamma (float): Focal loss gamma parameter.
+
+    Returns:
+        torch.Tensor: The weighted sum of mean focal losses for positive and negative matches.
+    """
+    predicted_confidence = torch.clamp(predicted_confidence, 1e-6, 1 - 1e-6)
+
+    positive_mask = ground_truth_confidence == 1
+    negative_mask = ground_truth_confidence == 0
+
+    loss_positive = -alpha * torch.pow(1 - predicted_confidence[positive_mask], gamma) * (predicted_confidence[positive_mask]).log()
+    loss_negative = -(1-alpha) * torch.pow(predicted_confidence[negative_mask], gamma) * (1 - predicted_confidence[negative_mask]).log()
 
     return loss_positive.mean() + loss_negative.mean()
 
