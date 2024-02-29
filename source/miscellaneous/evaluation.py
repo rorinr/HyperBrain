@@ -271,7 +271,9 @@ def predict_test_image_pair(
                     relative_coordinates=predicted_relative_coordinates,
                     fine_feature_size=fine_image_feature_1.shape[-1]
                 )
-                crop_1_patch_mid_coordinates += torch.Tensor([x, y]).long()
+
+                crop_1_patch_mid_coordinates = crop_1_patch_mid_coordinates.float()
+                crop_1_patch_mid_coordinates += torch.Tensor([x, y])
                 crop_2_patch_mid_coordinates += crop_2_position
                 crop_2_patch_mid_coordinates_refined += crop_2_position
 

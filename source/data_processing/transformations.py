@@ -111,7 +111,7 @@ def translate_coarse_to_fine(
     scale_factor = fine_size / coarse_size
     fine_coords = coarse_coords.float() * scale_factor
 
-    return fine_coords.long()
+    return fine_coords
 
 
 def get_relative_coordinates(
