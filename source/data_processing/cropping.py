@@ -203,12 +203,16 @@ def sample_crop_coordinates(
     )
 
     # Check if sampling space is valid
-    assert (
-        crop_position_min_x + 1 <= crop_position_max_x
-    ), "crop_position_min_x > crop_position_max_x"
-    assert (
-        crop_position_min_y + 1 <= crop_position_max_y
-    ), "crop_position_min_y > crop_position_max_y"
+    # assert (
+    #     crop_position_min_x + 1 <= crop_position_max_x
+    # ), "crop_position_min_x > crop_position_max_x"
+    # assert (
+    #     crop_position_min_y + 1 <= crop_position_max_y
+    # ), "crop_position_min_y > crop_position_max_y"
+
+    if crop_position_min_x + 1 > crop_position_max_x or crop_position_min_y + 1 > crop_position_max_y:
+        print("Warning: Crop position is invalid. Returning crop position as (0,0)")
+        return torch.Tensor([0, 0]).long(), torch.Tensor([0, 0]).long()
 
     # Mask for valid crop positions of transformed image
     mask_x = (coordinate_mapping[:, :, 0] >= crop_position_min_x) & (
