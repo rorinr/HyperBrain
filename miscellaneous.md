@@ -15,7 +15,7 @@
 - gradient clipping if graidents to big (double check this before implementing)
 
 - have look at relative coordinates: Does it allow floats output? Should be to be pixel precise!
-
+- Stochastic Weight Averaging
 - learnig rate schedule
 
 

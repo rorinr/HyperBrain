@@ -105,7 +105,7 @@ class BrainDataset(Dataset):
             List[str]: A list of image file names.
         """
         image_files = os.listdir(images_directory)
-        return image_files[:-2] if self.train else image_files[-2:]
+        return image_files[:-1] if self.train else image_files[-2:]
 
     def _get_images(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """

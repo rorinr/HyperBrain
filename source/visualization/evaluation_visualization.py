@@ -22,7 +22,7 @@ def plot_loss_curve(
 
     # Create the plot
     plt.figure(figsize=(10, 6))
-    plt.plot(x_values, loss_values, marker="o", color="b", linestyle="-")
+    plt.plot(x_values, loss_values, marker="o", color="b", linestyle="-", linewidth=.3)
 
     # Add title and labels
     plt.title(title)
