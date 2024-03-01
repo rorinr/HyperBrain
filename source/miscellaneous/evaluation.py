@@ -376,28 +376,54 @@ def read_deformation() -> torch.Tensor:
 
     return deformation
 
+def read_model_details(model_name: str) -> Dict:
+    """
+    Reads the details of a model from the model directory.
+
+    Args:
+        model_name (str): The name of the model.
+
+    Returns:
+        Dict: A dictionary containing the details of the model.
+    """
+    path_to_model_directory = "..\..\models"
+    path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
+    with open(os.path.join(path_to_model, "details.json"), "r") as f:
+        model_details = json.load(f)
+
+    return model_details
+
+def read_model_evaluation_metrics(model_name: str) -> Dict:
+    """
+    Reads the evaluation metrics of a model from the model directory.
+
+    Args:
+        model_name (str): The name of the model.
+
+    Returns:
+        Dict: A dictionary containing the evaluation metrics of the model.
+    """
+    path_to_model_directory = "..\..\models"
+    path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
+    with open(os.path.join(path_to_model, "evaluation_metrics.json"), "r") as f:
+        evaluation_metrics = json.load(f)
+
+    return evaluation_metrics
+
 
 def evaluate_model(
-    model_names: List[str],
-    confidence_thresholds: List[float],
-    block_dimensions: List[list],
-    temperatures: List[float],
-    patch_size: int,
-    crop_size: int
+    model_name: str,
+    confidence_threshold: float,
 ) -> Dict:
     """
     Evaluates multiple models using the given parameters.
 
     Args:
-        model_names (List[str]): A list of model names.
-        confidence_thresholds (List[float]): A list of confidence thresholds.
-        block_dimensions (List[list]): A list of block dimensions.
-        temperatures (List[float]): A list of temperatures.
+        model_name (str): model name.
+        confidence_thresholds (float): confidence threshold.
 
     Returns:
-        Dict[str, dict]: A dictionary containing evaluation metrics for each model.
-            The keys are the model names and the values are dictionaries containing
-            the evaluation metrics.
+        dict: A dictionary containing evaluation metrics for the model.
 
     Raises:
         FileNotFoundError: If the model files or evaluation metrics directory is not found.
@@ -414,96 +440,96 @@ def evaluate_model(
     # Read deformation
     deformation = read_deformation()
 
-    evaluation_metrics_per_model = {}
+    model_details = read_model_details(model_name)
+    block_dimension = model_details["block_dimensions"]
+    temperature = model_details["temperature"]
+    crop_size = model_details["crop_size"]
 
-    for model_name, confidence_threshold, block_dimension, temperature in zip(
-        model_names, confidence_thresholds, block_dimensions, temperatures
-    ):
-        
-        if len(block_dimension) == 3:
-            fine_feature_size = block_dimension[0]
-            backbone = ResNetFPN_8_2(block_dimensions=block_dimension).cuda()
+    if len(block_dimension) == 3:
+        fine_feature_size = block_dimension[0]
+        backbone = ResNetFPN_8_2(block_dimensions=block_dimension).cuda()
+        patch_size = 8
 
-        elif len(block_dimension) == 4:
-            fine_feature_size = block_dimension[1]
-            backbone = ResNetFPN_16_4(block_dimensions=block_dimension).cuda()
-      
-        coarse_feature_size = block_dimension[-1]
-        backbone.load_state_dict(torch.load(f"../../models/{model_name}/backbone.pt"))
+    elif len(block_dimension) == 4:
+        fine_feature_size = block_dimension[1]
+        backbone = ResNetFPN_16_4(block_dimensions=block_dimension).cuda()
+        patch_size = 16
+    
+    coarse_feature_size = block_dimension[-1]
+    backbone.load_state_dict(torch.load(f"../../models/{model_name}/backbone.pt"))
 
-        positional_encoding = PositionalEncoding(coarse_feature_size).cuda()
+    positional_encoding = PositionalEncoding(coarse_feature_size).cuda()
 
-        coarse_loftr = LocalFeatureTransformer(
-            feature_dimension=coarse_feature_size,
-            number_of_heads=8,
-            layer_names=["self", "cross"] * 4,
-        ).cuda()
-        coarse_loftr.load_state_dict(
-            torch.load(f"../../models/{model_name}/coarse_loftr.pt")
-        )
+    coarse_loftr = LocalFeatureTransformer(
+        feature_dimension=coarse_feature_size,
+        number_of_heads=8,
+        layer_names=["self", "cross"] * 4,
+    ).cuda()
+    coarse_loftr.load_state_dict(
+        torch.load(f"../../models/{model_name}/coarse_loftr.pt")
+    )
 
-        coarse_matcher = CoarseMatching(
-            temperature=temperature, confidence_threshold=confidence_threshold
-        ).cuda()
+    coarse_matcher = CoarseMatching(
+        temperature=temperature, confidence_threshold=confidence_threshold
+    ).cuda()
 
-        fine_preprocess = FinePreprocess(
-            coarse_feature_size=coarse_feature_size,
-            fine_feature_size=fine_feature_size,
-            window_size=5,
-            use_coarse_context=False,
-        ).cuda()
+    fine_preprocess = FinePreprocess(
+        coarse_feature_size=coarse_feature_size,
+        fine_feature_size=fine_feature_size,
+        window_size=5,
+        use_coarse_context=False,
+    ).cuda()
 
-        fine_loftr = LocalFeatureTransformer(
-            feature_dimension=fine_feature_size,
-            number_of_heads=8,
-            layer_names=["self", "cross"],
-        ).cuda()
-        fine_loftr.load_state_dict(
-            torch.load(f"../../models/{model_name}/fine_loftr.pt")
-        )
+    fine_loftr = LocalFeatureTransformer(
+        feature_dimension=fine_feature_size,
+        number_of_heads=8,
+        layer_names=["self", "cross"],
+    ).cuda()
+    fine_loftr.load_state_dict(
+        torch.load(f"../../models/{model_name}/fine_loftr.pt")
+    )
 
-        fine_matching = FineMatching(clamp_predictions=False).cuda()
+    fine_matching = FineMatching(clamp_predictions=False).cuda()
 
-        matches_image_1, matches_image_2 = predict_test_image_pair(
-            image_1=image_1,
-            image_2=image_2,
-            deformation=deformation,
-            backbone=backbone,
-            positional_encoding=positional_encoding,
-            coarse_loftr=coarse_loftr,
-            coarse_matcher=coarse_matcher,
-            fine_preprocess=fine_preprocess,
-            fine_loftr=fine_loftr,
-            fine_matching=fine_matching,
-            crop_size=crop_size,
-            patch_size=patch_size
-        )
-        torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
-        torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    matches_image_1, matches_image_2 = predict_test_image_pair(
+        image_1=image_1,
+        image_2=image_2,
+        deformation=deformation,
+        backbone=backbone,
+        positional_encoding=positional_encoding,
+        coarse_loftr=coarse_loftr,
+        coarse_matcher=coarse_matcher,
+        fine_preprocess=fine_preprocess,
+        fine_loftr=fine_loftr,
+        fine_matching=fine_matching,
+        crop_size=crop_size,
+        patch_size=patch_size
+    )
+    torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
 
-        (
-            number_of_matches,
-            average_distance,
-            match_precision,
-            auc,
-            matches_per_patch,
-            entropy,
-        ) = evaluate_test_image_pair(matches_image_1, matches_image_2, deformation)
+    (
+        number_of_matches,
+        average_distance,
+        match_precision,
+        auc,
+        matches_per_patch,
+        entropy,
+    ) = evaluate_test_image_pair(matches_image_1, matches_image_2, deformation)
 
-        evaluation_metrics = {
-            "confidence_threshold": confidence_threshold,
-            "number_of_matches": number_of_matches,
-            "average_distance": average_distance,
-            "auc": auc,
-            "entropy": entropy,
-            "matches_per_patch": matches_per_patch.tolist(),
-            "match_precision": match_precision,
-        }
-        evaluation_metrics_per_model[model_name] = evaluation_metrics
+    evaluation_metrics = {
+        "confidence_threshold": confidence_threshold,
+        "number_of_matches": number_of_matches,
+        "average_distance": average_distance,
+        "auc": auc,
+        "entropy": entropy,
+        "matches_per_patch": matches_per_patch.tolist(),
+        "match_precision": match_precision,
+    }
 
-        base_path = "../../models"
-        final_dir = os.path.join(base_path, f"{model_name}")
-        with open(os.path.join(final_dir, "evaluation_metrics.json"), "w") as f:
-            json.dump(evaluation_metrics, f)
+    base_path = "../../models"
+    final_dir = os.path.join(base_path, f"{model_name}")
+    with open(os.path.join(final_dir, "evaluation_metrics.json"), "w") as f:
+        json.dump(evaluation_metrics, f)
 
-    return evaluation_metrics_per_model
+    return evaluation_metrics
