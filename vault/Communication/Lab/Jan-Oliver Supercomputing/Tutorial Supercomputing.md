@@ -1,5 +1,0 @@
-- Mit putty oder WSL mit Supercomputer verbinden
-	- Mit pierschke1@jureca.fz-juelich.de via SSH anmelden
-	- ip range von provider als option in judoor angeben oder ip-adresse
-- Alternativ über Notebook https://jupyter-jsc.fz-juelich.de/hub/home
-- Dokumentation: https://apps.fz-juelich.de/jsc/hps/jureca/batchsystem.html
