@@ -152,7 +152,6 @@ def predict_test_image_pair(
     fine_matching: torch.nn.Module,
     crop_size: int,
     patch_size: int,
-    return_not_refined: bool = False,
     normalize_images: bool = True
 ):
     """
@@ -169,7 +168,6 @@ def predict_test_image_pair(
         fine_preprocess (torch.nn.Module): The fine preprocess module.
         fine_loftr (torch.nn.Module): The fine LoFTR module.
         fine_matching (torch.nn.Module): The fine matching module.
-        return_not_refined (bool, optional): Whether to return the keypoints without refinement. Defaults to False.
         normalize_images (bool, optional): Whether to normalize the keypoints. Defaults to True.
 
     Returns:
@@ -285,10 +283,8 @@ def predict_test_image_pair(
     matches_image_2 = torch.concatenate(matches_image_2)
     matches_image_2_not_refined = torch.concatenate(matches_image_2_not_refined)
 
-    if return_not_refined:
-        return matches_image_1, matches_image_2, matches_image_2_not_refined
+    return matches_image_1, matches_image_2, matches_image_2_not_refined
 
-    return matches_image_1, matches_image_2
 
 
 def evaluate_test_image_pair(
@@ -491,7 +487,7 @@ def evaluate_model(
 
     fine_matching = FineMatching(clamp_predictions=False).cuda()
 
-    matches_image_1, matches_image_2 = predict_test_image_pair(
+    matches_image_1, matches_image_2, matches_image_2_not_refined = predict_test_image_pair(
         image_1=image_1,
         image_2=image_2,
         deformation=deformation,
@@ -507,6 +503,7 @@ def evaluate_model(
     )
     torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
     torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    torch.save(matches_image_2_not_refined, f"../../models/{model_name}/matches_image_2_not_refined_conf_{str(confidence_threshold).replace('.', '')}.pt")
 
     (
         number_of_matches,

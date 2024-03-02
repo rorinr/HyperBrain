@@ -90,7 +90,7 @@ def translate_fine_to_coarse(
     scale_factor = fine_size / coarse_size
     coarse_coords = fine_coordinates.float() / scale_factor
 
-    return coarse_coords.long()
+    return coarse_coords
 
 
 def translate_coarse_to_fine(

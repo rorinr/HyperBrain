@@ -60,5 +60,4 @@ def plot_precision_vs_threshold(
     plt.xlabel("Pixel Threshold")  # Label for the x-axis
     plt.ylabel("Precision")  # Label for the y-axis
     plt.legend()  # Show legend to identify predictors
-    plt.grid(True)  # Add grid for easier reading of the plot
     plt.show()  # Display the plot
