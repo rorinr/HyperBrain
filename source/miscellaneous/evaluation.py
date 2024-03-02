@@ -191,6 +191,8 @@ def predict_test_image_pair(
 
                 crop_2_position = deformation[y, x]
                 crop_2 = crop_image(image_2, crop_2_position, crop_size)
+
+                # Skip crops that are not of the correct size
                 if crop_1.shape[-1] != crop_size or crop_1.shape[-2] != crop_size or crop_2.shape[-1] != crop_size or crop_2.shape[-2] != crop_size:
                     continue
 
@@ -245,12 +247,18 @@ def predict_test_image_pair(
                     fine_height_width=fine_height_width,
                     coarse_height_width=coarse_height_width
                 )
+                
+                # Skip crops that do not contain any matches
+                if fine_image_feature_1_unfold.size(0) == 0:
+                    continue
 
                 fine_image_feature_1_unfold = fine_image_feature_1_unfold.to("cuda")
                 fine_image_feature_2_unfold = fine_image_feature_2_unfold.to("cuda")
 
-                if fine_image_feature_1_unfold.size(0) == 0:
-                    continue
+
+                fine_image_feature_1_unfold, fine_image_feature_2_unfold = fine_loftr(fine_image_feature_1_unfold, fine_image_feature_2_unfold)
+
+               
 
                 predicted_relative_coordinates = fine_matching(
                     fine_image_feature_1_unfold, fine_image_feature_2_unfold
@@ -361,7 +369,7 @@ def evaluate_test_image_pair(
 def read_deformation() -> torch.Tensor:
     # Read deformation
     deformation_path = (
-        r"C:\Users\robin\Desktop\temp\temp\0524-0525_deformation_low_scale.h5"
+        r"../../data/cyto_downscaled_3344_3904_evaluation/0524-0525_deformation_low_scale.h5"
     )
     deformation_file = h5py.File(deformation_path, "r")
     deformation = cv2.resize(
@@ -426,10 +434,10 @@ def evaluate_model(
     """
     # Read test images
     image_1 = read_image(
-        r"C:\Users\robin\Desktop\temp\temp\B20_0524_Slice15.tif", size=(3463, 8000)
+        r"../../data/cyto_downscaled_3344_3904_evaluation/B20_0524_Slice15.tif", size=(3463, 8000)
     )
     image_2 = read_image(
-        r"C:\Users\robin\Desktop\temp\temp\B20_0525_Slice15.tif", size=(3668, 7382)
+        r"../../data/cyto_downscaled_3344_3904_evaluation/B20_0525_Slice15.tif", size=(3668, 7382)
     )
     image_1, image_2 = ToTensor()(image_1), ToTensor()(image_2)
 
@@ -485,7 +493,7 @@ def evaluate_model(
         torch.load(f"../../models/{model_name}/fine_loftr.pt")
     )
 
-    fine_matching = FineMatching(clamp_predictions=False).cuda()
+    fine_matching = FineMatching().cuda()
 
     matches_image_1, matches_image_2, matches_image_2_not_refined = predict_test_image_pair(
         image_1=image_1,

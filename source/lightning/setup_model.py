@@ -110,7 +110,7 @@ class LitLoFTR(L.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.0007, weight_decay=0.0001)
         return optimizer
 
-def setup_lightning_loftr(block_dimensions: List[int], use_coarse_context: bool, clamp_predictions:bool, temperature: float, coarse_loss:str, fine_loss: str, alpha = None, gamma = None):
+def setup_lightning_loftr(block_dimensions: List[int], use_coarse_context: bool, temperature: float, coarse_loss:str, fine_loss: str, alpha = None, gamma = None):
     if len (block_dimensions) == 3:
         backbone = ResNetFPN_8_2(block_dimensions=block_dimensions)
     elif len (block_dimensions) == 4:
@@ -149,7 +149,6 @@ def setup_lightning_loftr(block_dimensions: List[int], use_coarse_context: bool,
     use_l2_with_standard_deviation = True if fine_loss == "l2_std" else False
     fine_matching = FineMatching(
         return_standard_deviation=use_l2_with_standard_deviation,
-        clamp_predictions=clamp_predictions,
     )
 
     model = LitLoFTR(
