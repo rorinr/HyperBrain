@@ -384,17 +384,20 @@ def load_deformation() -> torch.Tensor:
     deformation = torch.load(deformation_path)
     return deformation.long()
 
-def read_model_details(model_path) -> Dict:
+def read_model_details(training_run:str, model_name: str) -> Dict:
     """
     Reads the details of a model from the model directory.
 
     Args:
-        model_path (str): The path of the model.
+        training_run (str): Training run of model, parent directory of model_name
+        model_name (str): The name of the model.
 
     Returns:
         Dict: A dictionary containing the details of the model.
     """
-    with open(os.path.join(model_path, "details.json"), "r") as f:
+    path_to_model_directory = "../../models"
+    path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
+    with open(os.path.join(path_to_model, "details.json"), "r") as f:
         model_details = json.load(f)
 
     return model_details
@@ -436,9 +439,6 @@ def evaluate_model(
     Raises:
         FileNotFoundError: If the model files or evaluation metrics directory is not found.
     """
-    # Model path
-    model_path = f"../../models/{training_run}/{model_name}"
-    
     # Read test images
     image_1 = read_image(
         r"../../data/cyto_downscaled_3344_3904_evaluation/B20_0524_Slice15.tif", size=(3463, 8000)
@@ -451,7 +451,7 @@ def evaluate_model(
     # Read deformation
     deformation = load_deformation()
 
-    model_details = read_model_details(model_path)
+    model_details = read_model_details(training_run=training_run, model_name=model_name)
     block_dimension = model_details["block_dimensions"]
     temperature = model_details["temperature"]
     crop_size = model_details["crop_size"]
@@ -467,7 +467,7 @@ def evaluate_model(
         patch_size = 16
     
     coarse_feature_size = block_dimension[-1]
-    backbone.load_state_dict(torch.load(f"{model_path}/backbone.pt"))
+    backbone.load_state_dict(torch.load(f"../../models/{model_name}/backbone.pt"))
 
     positional_encoding = PositionalEncoding(coarse_feature_size).cuda()
 
@@ -477,7 +477,7 @@ def evaluate_model(
         layer_names=["self", "cross"] * 4,
     ).cuda()
     coarse_loftr.load_state_dict(
-        torch.load(f"{model_path}/coarse_loftr.pt")
+        torch.load(f"../../models/{model_name}/coarse_loftr.pt")
     )
 
     coarse_matcher = CoarseMatching(
@@ -497,7 +497,7 @@ def evaluate_model(
         layer_names=["self", "cross"],
     ).cuda()
     fine_loftr.load_state_dict(
-        torch.load(f"{model_path}/fine_loftr.pt")
+        torch.load(f"../../models/{model_name}/fine_loftr.pt")
     )
 
     fine_matching = FineMatching().cuda()
@@ -516,9 +516,9 @@ def evaluate_model(
         crop_size=crop_size,
         patch_size=patch_size
     )
-    torch.save(matches_image_1, f"{model_path}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
-    torch.save(matches_image_2, f"{model_path}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
-    torch.save(matches_image_2_not_refined, f"{model_path}/matches_image_2_not_refined_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    torch.save(matches_image_1, f"../../models/{model_name}/matches_image_1_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    torch.save(matches_image_2, f"../../models/{model_name}/matches_image_2_conf_{str(confidence_threshold).replace('.', '')}.pt")
+    torch.save(matches_image_2_not_refined, f"../../models/{model_name}/matches_image_2_not_refined_conf_{str(confidence_threshold).replace('.', '')}.pt")
 
     (
         number_of_matches,
@@ -539,7 +539,9 @@ def evaluate_model(
         "match_precision": match_precision,
     }
 
-    with open(os.path.join(model_path, "evaluation_metrics.json"), "w") as f:
+    base_path = "../../models"
+    final_dir = os.path.join(base_path, f"{model_name}")
+    with open(os.path.join(final_dir, "evaluation_metrics.json"), "w") as f:
         json.dump(evaluation_metrics, f)
 
     return evaluation_metrics
