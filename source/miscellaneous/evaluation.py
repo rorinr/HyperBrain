@@ -8,7 +8,7 @@ from source.loftr.fine_preprocess import FinePreprocess
 from source.data_processing.image_reading import read_image
 from torchvision.transforms import ToTensor
 import h5py
-import cv2
+import kornia
 import numpy as np
 from einops import rearrange
 from source.data_processing.keypoints import translate_patch_midpoints_and_refine
@@ -369,16 +369,11 @@ def evaluate_test_image_pair(
 def read_deformation() -> torch.Tensor:
     # Read deformation
     deformation_path = (
-        r"../../data/cyto_downscaled_3344_3904_evaluation/0524-0525_deformation_low_scale.h5"
+        r"../../data/cyto_downscaled_3344_3904_evaluation/deformation.pt"
     )
-    deformation_file = h5py.File(deformation_path, "r")
-    deformation = cv2.resize(
-        np.array(deformation_file["deformation"]) // 10, (3463, 8000)
-    )
-    deformation = torch.Tensor(deformation).long()
-    deformation = torch.flip(deformation, dims=[-1])
+    deformation = torch.load(deformation_path)
 
-    return deformation
+    return deformation.long()
 
 def read_model_details(model_name: str) -> Dict:
     """
@@ -390,7 +385,7 @@ def read_model_details(model_name: str) -> Dict:
     Returns:
         Dict: A dictionary containing the details of the model.
     """
-    path_to_model_directory = "..\..\models"
+    path_to_model_directory = "../../models"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "details.json"), "r") as f:
         model_details = json.load(f)
