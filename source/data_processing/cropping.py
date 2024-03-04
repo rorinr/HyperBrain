@@ -212,7 +212,7 @@ def sample_crop_coordinates(
 
     if crop_position_min_x + 1 > crop_position_max_x or crop_position_min_y + 1 > crop_position_max_y:
         print("Warning: Crop position is invalid. Returning crop position as (0,0)")
-        return torch.Tensor([0, 0]).long(), torch.Tensor([0, 0]).long()
+        return torch.Tensor([0, 0]).long().to(coordinate_mapping.device), torch.Tensor([0, 0]).long().to(coordinate_mapping.device)
 
     # Mask for valid crop positions of transformed image
     mask_x = (coordinate_mapping[:, :, 0] >= crop_position_min_x) & (
@@ -245,7 +245,7 @@ def sample_crop_coordinates(
     # Use max_ranodm_offset to shift the crop position in the transformed image
     # -> makes sure that top left corner of crop is not always the same
     crop_position_image_2 += torch.randint(
-        -max_translation_shift, max_translation_shift, (2,)
+        -max_translation_shift, max_translation_shift, (2,), device=coordinate_mapping.device
     )
 
     return crop_position_image_1, crop_position_image_2.long()

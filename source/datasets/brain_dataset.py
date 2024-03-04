@@ -74,10 +74,12 @@ class BrainDataset(Dataset):
         perspective_transformation_range: Optional[float] = None,
         transform: transforms.transforms.Compose = None,
         return_crop_coordinates: bool = False,
+        load_in_gpu: bool = False
     ) -> None:
         super().__init__()
         self.train = train
         self.image_names = self._get_image_names(images_directory=images_directory)
+        self.load_in_gpu = load_in_gpu
         self.images_directory = images_directory
         self.transform = transform
         self.affine_transformation_range = affine_transformation_range
@@ -87,6 +89,10 @@ class BrainDataset(Dataset):
         self.fine_height_width = fine_height_width
         self.return_crop_coordinates = return_crop_coordinates
         self.perspective_transformation_range = perspective_transformation_range
+
+        if self.load_in_gpu:
+            image_tensor = [read_image(os.path.join(self.images_directory, image_name)) for image_name in self.image_names]
+            self.image_tensor = torch.stack([transforms.ToTensor()(image) for image in image_tensor]).cuda()
 
     def __len__(self) -> int:
         """
@@ -156,7 +162,12 @@ class BrainDataset(Dataset):
                 - crop_coordinate_mapping (torch.Tensor): A mapping between the two crops.
         """
         # Read whole image
-        image_1, image_2 = self._get_images(index=index)
+        if not self.load_in_gpu:
+            image_1, image_2 = self._get_images(index=index)
+        else:
+            image_1 = self.image_tensor[index]
+            image_2 = self.image_tensor[index + 1]
+        
         image_2_size = image_2.shape[-2:]
 
         # Apply transformations if passed (eg normlaization)
@@ -172,6 +183,8 @@ class BrainDataset(Dataset):
             transformation_matrix = sample_random_affine_matrix(
                 range_limit=self.affine_transformation_range
             )
+        transformation_matrix = transformation_matrix.to(image_2.device)
+
 
         image_2_transformed = warp_perspective(
             src=image_2.unsqueeze(0),
@@ -181,7 +194,7 @@ class BrainDataset(Dataset):
         )[0]
 
         # Generate (height, width, 2) grid of pixel coordinates for image 2
-        grid_coordinates = generate_image_grid_coordinates(image_size=image_2_size)
+        grid_coordinates = generate_image_grid_coordinates(image_size=image_2_size).to(device=image_2.device)
 
         # Transform the grid coordinates according to the affine transformation
         # Pixel (i,j) of image_1 corresponds to pixel image_coordinate_mapping[i,j] in image_2
@@ -248,7 +261,7 @@ class BrainDataset(Dataset):
         # Translate the mid points of patches in crop 2 to the fine feature level
         crop_2_patch_mid_indices_fine = translate_fine_to_coarse(
             fine_coordinates=crop_2_patch_mid_indices, coarse_size=self.fine_height_width, fine_size=self.crop_size
-        )
+        ).to(image_1.device)
 
         # Note: An element in crop_2_patch_mid_indices(_fine) doesnt necessarily correspond to the same pixel as the element in crop_1_patch_mid_indices(_fine)
         # It is just the mid point of the matched patch in the crop
@@ -262,7 +275,9 @@ class BrainDataset(Dataset):
             crop_1_mid_pixels_transformed,
             coarse_size=self.fine_height_width,
             fine_size=self.crop_size,
-        )
+        ).to(image_1.device)
+
+
 
         # Computed the relative position of crop_1_mid_pixels_transformed_fine wrt crop_2_patch_mid_indices_fine
         # At test time we only know the mid point of patches in crop_2 (or in the fine feature level) but not

@@ -53,6 +53,7 @@ def create_match_matrix(
         torch.arange(patch_size // 2, crop_size, patch_size),
         indexing="ij",
     )
+    y_indices_mid, x_indices_mid = y_indices_mid.to(crop_coordinate_mapping.device), x_indices_mid.to(crop_coordinate_mapping.device)
 
     # Extract mid-pixel coordinates for mapping
     mid_pixel_mappings = crop_coordinate_mapping[y_indices_mid, x_indices_mid]
