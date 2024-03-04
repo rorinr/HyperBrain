@@ -3,7 +3,7 @@ from PIL import Image
 
 Image.MAX_IMAGE_PIXELS = 9999999999999999
 import os
-
+from skimage import io
 
 def read_image(
     path: str, size: Optional[Tuple[int, int]] = None, layer: int = None
@@ -32,7 +32,7 @@ def read_image(
 
         if size is not None:
             image = image.resize(size, Image.LANCZOS)
-
+        
         return image.copy()
 
 
