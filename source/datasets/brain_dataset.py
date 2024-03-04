@@ -111,7 +111,8 @@ class BrainDataset(Dataset):
             List[str]: A list of image file names.
         """
         image_files = os.listdir(images_directory)
-        images_files = [file for file in image_files if "tif" in file]
+        image_files = [file for file in image_files if "tif" in file]
+        image_files = sorted(image_files)
         return image_files[:-1] if self.train else image_files[-2:]
 
     def _get_images(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:

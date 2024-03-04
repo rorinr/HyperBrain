@@ -369,7 +369,7 @@ def evaluate_test_image_pair(
 def read_deformation() -> torch.Tensor:
     # Read deformation
     deformation_path = (
-        r"../../data/cyto_downscaled_3344_3904_evaluation/0524-0525_deformation_low_scale.h5"
+        r"../../data/cyto_downscaled_3344_3904_evaluation/deformation.pt"
     )
     deformation_file = h5py.File(deformation_path, "r")
     deformation = torch.Tensor(np.array(deformation_file["deformation"]) / 10)
@@ -394,6 +394,7 @@ def read_model_details(model_name: str) -> Dict:
     Returns:
         Dict: A dictionary containing the details of the model.
     """
+    path_to_model_directory = "../../models"
     path_to_model_directory = "../../models"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "details.json"), "r") as f:
