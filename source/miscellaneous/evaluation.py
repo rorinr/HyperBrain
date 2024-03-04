@@ -8,7 +8,7 @@ from source.loftr.fine_preprocess import FinePreprocess
 from source.data_processing.image_reading import read_image
 from torchvision.transforms import ToTensor
 import h5py
-import cv2
+import kornia
 import numpy as np
 from einops import rearrange
 from source.data_processing.keypoints import translate_patch_midpoints_and_refine
@@ -372,13 +372,12 @@ def read_deformation() -> torch.Tensor:
         r"../../data/cyto_downscaled_3344_3904_evaluation/0524-0525_deformation_low_scale.h5"
     )
     deformation_file = h5py.File(deformation_path, "r")
-    deformation = cv2.resize(
-        np.array(deformation_file["deformation"]) // 10, (3463, 8000)
-    )
-    deformation = torch.Tensor(deformation).long()
+    deformation = torch.Tensor(np.array(deformation_file["deformation"]) / 10)
+    deformation = kornia.augmentation.Resize(size=(3463, 8000), resample="NEAREST")(deformation.permute(2,1,0))
+    deformation = deformation.permute(0, 3, 2, 1).squeeze(0)
     deformation = torch.flip(deformation, dims=[-1])
 
-    return deformation
+    return deformation.long()
 
 def read_model_details(model_name: str) -> Dict:
     """
@@ -434,10 +433,10 @@ def evaluate_model(
     """
     # Read test images
     image_1 = read_image(
-        r"../../data/cyto_downscaled_3344_3904_evaluation/B20_0524_Slice15.tif", size=(3463, 8000)
+        r"../../data/cyto_downscaled_3344_3904_evaluation_downscaled_10x/B20_0524_Slice15.tif", size=(3463, 8000)
     )
     image_2 = read_image(
-        r"../../data/cyto_downscaled_3344_3904_evaluation/B20_0525_Slice15.tif", size=(3668, 7382)
+        r"../../data/cyto_downscaled_3344_3904_evaluation_downscaled_10x/B20_0525_Slice15.tif", size=(3668, 7382)
     )
     image_1, image_2 = ToTensor()(image_1), ToTensor()(image_2)
 
