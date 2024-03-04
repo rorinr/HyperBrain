@@ -395,7 +395,6 @@ def read_model_details(model_name: str) -> Dict:
         Dict: A dictionary containing the details of the model.
     """
     path_to_model_directory = "../../models"
-    path_to_model_directory = "../../models"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "details.json"), "r") as f:
         model_details = json.load(f)
