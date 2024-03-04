@@ -379,6 +379,11 @@ def read_deformation() -> torch.Tensor:
 
     return deformation.long()
 
+def load_deformation() -> torch.Tensor:
+    deformation_path = r"../../data/cyto_downscaled_3344_3904_evaluation/deformation.pt"
+    deformation = torch.load(deformation_path)
+    return deformation.long()
+
 def read_model_details(model_name: str) -> Dict:
     """
     Reads the details of a model from the model directory.
@@ -389,7 +394,7 @@ def read_model_details(model_name: str) -> Dict:
     Returns:
         Dict: A dictionary containing the details of the model.
     """
-    path_to_model_directory = "..\..\models"
+    path_to_model_directory = "../../models"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "details.json"), "r") as f:
         model_details = json.load(f)
@@ -406,7 +411,7 @@ def read_model_evaluation_metrics(model_name: str) -> Dict:
     Returns:
         Dict: A dictionary containing the evaluation metrics of the model.
     """
-    path_to_model_directory = "..\..\models"
+    path_to_model_directory = "../../models"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "evaluation_metrics.json"), "r") as f:
         evaluation_metrics = json.load(f)
@@ -441,7 +446,7 @@ def evaluate_model(
     image_1, image_2 = ToTensor()(image_1), ToTensor()(image_2)
 
     # Read deformation
-    deformation = read_deformation()
+    deformation = load_deformation()
 
     model_details = read_model_details(model_name)
     block_dimension = model_details["block_dimensions"]
