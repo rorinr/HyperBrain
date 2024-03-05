@@ -2,7 +2,7 @@ import copy
 from typing import List, Tuple
 import torch
 import torch.nn as nn
-from source.loftr.attention import LinearAttention
+from source.loftr.attention import LinearAttention, FullAttention
 
 
 class LoFTREncoderLayer(nn.Module):
@@ -60,7 +60,7 @@ class LoFTREncoderLayer(nn.Module):
         self.v_projection = nn.Linear(feature_dimension, feature_dimension, bias=False)
 
         # Linear attention layer
-        self.attention = LinearAttention()
+        self.attention = FullAttention()
 
         # Merge Linear layer after attention
         self.merge = nn.Linear(feature_dimension, feature_dimension, bias=False)
