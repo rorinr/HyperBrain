@@ -71,3 +71,34 @@ class LinearAttention(nn.Module):
         queried_values = torch.einsum("nlhd,nhdv,nlh->nlhv", Q, KV, Z) * values_length
 
         return queried_values.contiguous()
+    
+class FullAttention(nn.Module):
+    def __init__(self, use_dropout=False, attention_dropout=0.1):
+        super().__init__()
+        self.use_dropout = use_dropout
+        self.dropout = nn.Dropout(attention_dropout)
+
+    def forward(self, queries, keys, values):
+        """ Multi-head scaled dot-product attention, a.k.a full attention.
+        Args:
+            queries: [N, L, H, D]
+            keys: [N, S, H, D]
+            values: [N, S, H, D]
+            q_mask: [N, L]
+            kv_mask: [N, S]
+        Returns:
+            queried_values: (N, L, H, D)
+        """
+
+        # Compute the unnormalized attention and apply the masks
+        QK = torch.einsum("nlhd,nshd->nlsh", queries, keys)
+
+        # Compute the attention and the weighted average
+        softmax_temp = 1. / queries.size(3)**.5  # sqrt(D)
+        A = torch.softmax(softmax_temp * QK, dim=2)
+        if self.use_dropout:
+            A = self.dropout(A)
+
+        queried_values = torch.einsum("nlsh,nshd->nlhd", A, values)
+
+        return queried_values.contiguous()
