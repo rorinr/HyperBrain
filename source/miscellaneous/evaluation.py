@@ -467,7 +467,9 @@ def evaluate_model(
         patch_size = 16
     
     coarse_feature_size = block_dimension[-1]
-    backbone.load_state_dict(torch.load(f"{model_path}/backbone.pt"))
+    state_dict_backbone = torch.load(f"{model_path}/backbone.pt")
+    state_dict_backbone = {k.replace("module.", ""): v for k, v in state_dict_backbone.items()}
+    backbone.load_state_dict(state_dict_backbone)
 
     positional_encoding = PositionalEncoding(coarse_feature_size).cuda()
 
@@ -476,9 +478,9 @@ def evaluate_model(
         number_of_heads=8,
         layer_names=["self", "cross"] * 4,
     ).cuda()
-    coarse_loftr.load_state_dict(
-        torch.load(f"{model_path}/coarse_loftr.pt")
-    )
+    state_dict_coarse_loftr = torch.load(f"{model_path}/coarse_loftr.pt") 
+    state_dict_coarse_loftr = {k.replace("module.", ""): v for k, v in state_dict_coarse_loftr.items()}
+    coarse_loftr.load_state_dict(state_dict_coarse_loftr)
 
     coarse_matcher = CoarseMatching(
         temperature=temperature, confidence_threshold=confidence_threshold
@@ -496,9 +498,9 @@ def evaluate_model(
         number_of_heads=8,
         layer_names=["self", "cross"],
     ).cuda()
-    fine_loftr.load_state_dict(
-        torch.load(f"{model_path}/fine_loftr.pt")
-    )
+    state_dict_fine_loftr = torch.load(f"{model_path}/fine_loftr.pt")
+    state_dict_fine_loftr = {k.replace("module.", ""): v for k, v in state_dict_fine_loftr.items()}
+    fine_loftr.load_state_dict(state_dict_fine_loftr)
 
     fine_matching = FineMatching().cuda()
 
