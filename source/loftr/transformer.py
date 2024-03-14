@@ -30,7 +30,7 @@ class LoFTREncoderLayer(nn.Module):
         norm1, norm2 (nn.LayerNorm): Layer normalization modules.
     """
 
-    def __init__(self, feature_dimension: int, number_of_heads: int) -> None:
+    def __init__(self, feature_dimension: int, number_of_heads: int, attention_type: str) -> None:
         """
         Initializes the LoFTREncoderLayer with specified feature dimensions and number of heads.
 
@@ -39,6 +39,7 @@ class LoFTREncoderLayer(nn.Module):
                                      determine the input and output dimensions of the linear
                                      projections and the normalization layers.
             number_of_heads (int): The number of heads to use in the multi-head attention mechanism.
+            attention_type (str): Whether to use linear or vanilla attention
 
             Note that the feature_dimension must be divisible by the number_of_heads.
             It ensures that each attention head processes a feature vector of equal size
@@ -59,8 +60,11 @@ class LoFTREncoderLayer(nn.Module):
         self.k_projection = nn.Linear(feature_dimension, feature_dimension, bias=False)
         self.v_projection = nn.Linear(feature_dimension, feature_dimension, bias=False)
 
-        # Linear attention layer
-        self.attention = FullAttention()
+        # Attention layer
+        if attention_type == "vanilla":
+            self.attention = FullAttention()
+        elif attention_type == "linear":
+            self.attention = LinearAttention()
 
         # Merge Linear layer after attention
         self.merge = nn.Linear(feature_dimension, feature_dimension, bias=False)
@@ -141,6 +145,7 @@ class LocalFeatureTransformer(nn.Module):
         feature_dimension: int,
         number_of_heads: int,
         layer_names: List[str],
+        attention_type: str
     ) -> None:
         """
         Initializes the LocalFeatureTransformer module, a key component in the LoFTR architecture.
@@ -160,6 +165,7 @@ class LocalFeatureTransformer(nn.Module):
             layer_names (list): A list of strings indicating the type of each encoder layer in the transformer.
                                 Valid strings are "self" for self-attention and "cross" for cross-attention layers.
                                 The order of strings in the list dictates the order of the layers in the transformer.
+            attention_type (str): use linear or vanilla attention
 
         The module initializes a sequence of LoFTREncoderLayer instances, each corresponding to an entry in `layer_names`.
         It also sets up the necessary parameters and configurations for the transformer layers.
@@ -172,6 +178,7 @@ class LocalFeatureTransformer(nn.Module):
         encoder_layer = LoFTREncoderLayer(
             feature_dimension=feature_dimension,
             number_of_heads=number_of_heads,
+            attention_type=attention_type
         )
         self.layers = nn.ModuleList(
             [copy.deepcopy(encoder_layer) for _ in range(len(self.layer_names))]

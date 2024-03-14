@@ -74,7 +74,8 @@ class BrainDataset(Dataset):
         perspective_transformation_range: Optional[float] = None,
         transform: transforms.transforms.Compose = None,
         return_crop_coordinates: bool = False,
-        load_in_gpu: bool = False
+        load_in_gpu: bool = False,
+        self_supervised: bool = False
     ) -> None:
         super().__init__()
         self.train = train
@@ -89,6 +90,7 @@ class BrainDataset(Dataset):
         self.fine_height_width = fine_height_width
         self.return_crop_coordinates = return_crop_coordinates
         self.perspective_transformation_range = perspective_transformation_range
+        self.self_supervised = self_supervised
 
         if self.load_in_gpu:
             image_tensor = [read_image(os.path.join(self.images_directory, image_name)) for image_name in self.image_names]
@@ -128,9 +130,15 @@ class BrainDataset(Dataset):
         image_1 = read_image(
             os.path.join(self.images_directory, self.image_names[index])
         )
-        image_2 = read_image(
-            os.path.join(self.images_directory, self.image_names[index + 1])
-        )
+        
+        if not self.self_supervised:
+            image_2 = read_image(
+                os.path.join(self.images_directory, self.image_names[index + 1])
+            )
+        else:
+            image_2 = read_image(
+                os.path.join(self.images_directory, self.image_names[index])
+            )
 
         image_1 = transforms.ToTensor()(image_1)
         image_2 = transforms.ToTensor()(image_2)
@@ -168,7 +176,10 @@ class BrainDataset(Dataset):
             image_1, image_2 = self._get_images(index=index)
         else:
             image_1 = self.image_tensor[index]
-            image_2 = self.image_tensor[index + 1]
+            if not self.self_supervised:
+                image_2 = self.image_tensor[index + 1]
+            else:
+                image_2 = self.image_tensor[index]
         
         image_2_size = image_2.shape[-2:]
 

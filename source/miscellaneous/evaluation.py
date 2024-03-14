@@ -399,7 +399,7 @@ def read_model_details(model_path) -> Dict:
 
     return model_details
 
-def read_model_evaluation_metrics(model_name: str) -> Dict:
+def read_model_evaluation_metrics(training_run:str, model_name: str) -> Dict:
     """
     Reads the evaluation metrics of a model from the model directory.
 
@@ -409,7 +409,7 @@ def read_model_evaluation_metrics(model_name: str) -> Dict:
     Returns:
         Dict: A dictionary containing the evaluation metrics of the model.
     """
-    path_to_model_directory = "../../models"
+    path_to_model_directory = f"../../models/{training_run}"
     path_to_model = os.path.join(path_to_model_directory, f"{model_name}")
     with open(os.path.join(path_to_model, "evaluation_metrics.json"), "r") as f:
         evaluation_metrics = json.load(f)
@@ -455,6 +455,7 @@ def evaluate_model(
     block_dimension = model_details["block_dimensions"]
     temperature = model_details["temperature"]
     crop_size = model_details["crop_size"]
+    attention = model_details["attention"]
 
     if len(block_dimension) == 3:
         fine_feature_size = block_dimension[0]
@@ -477,6 +478,7 @@ def evaluate_model(
         feature_dimension=coarse_feature_size,
         number_of_heads=8,
         layer_names=["self", "cross"] * 4,
+        attention_type=attention
     ).cuda()
     state_dict_coarse_loftr = torch.load(f"{model_path}/coarse_loftr.pt") 
     state_dict_coarse_loftr = {k.replace("module.", ""): v for k, v in state_dict_coarse_loftr.items()}
@@ -497,7 +499,9 @@ def evaluate_model(
         feature_dimension=fine_feature_size,
         number_of_heads=8,
         layer_names=["self", "cross"],
+        attention_type=attention
     ).cuda()
+    
     state_dict_fine_loftr = torch.load(f"{model_path}/fine_loftr.pt")
     state_dict_fine_loftr = {k.replace("module.", ""): v for k, v in state_dict_fine_loftr.items()}
     fine_loftr.load_state_dict(state_dict_fine_loftr)
