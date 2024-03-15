@@ -75,7 +75,8 @@ class BrainDataset(Dataset):
         transform: transforms.transforms.Compose = None,
         return_crop_coordinates: bool = False,
         load_in_gpu: bool = False,
-        self_supervised: bool = False
+        self_supervised: bool = False,
+        sample_both_coordinates: bool = False
     ) -> None:
         super().__init__()
         self.train = train
@@ -91,6 +92,7 @@ class BrainDataset(Dataset):
         self.return_crop_coordinates = return_crop_coordinates
         self.perspective_transformation_range = perspective_transformation_range
         self.self_supervised = self_supervised
+        self.sample_both_coordinates = sample_both_coordinates
 
         if self.load_in_gpu:
             image_tensor = [read_image(os.path.join(self.images_directory, image_name)) for image_name in self.image_names]
@@ -221,6 +223,7 @@ class BrainDataset(Dataset):
             coordinate_mapping=image_coordinate_mapping,
             crop_size=self.crop_size,
             max_translation_shift=self.max_translation_shift,
+            sample_both_coordinates=self.sample_both_coordinates
         )
 
         # Crop the images
