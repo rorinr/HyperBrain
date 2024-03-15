@@ -139,6 +139,7 @@ def sample_crop_coordinates(
     coordinate_mapping: torch.tensor,
     crop_size: int,
     max_translation_shift: int,
+    sample_both_coordinates: bool = False
 ) -> Tuple[torch.tensor, torch.tensor]:
     """
     Samples the top-left corner coordinates for cropping the original and the transformed images.
@@ -153,6 +154,10 @@ def sample_crop_coordinates(
         crop_size (int): The size of the square crop.
         max_translation_shift (int): The maximum translation shift applied to the crop position in the
                                      transformed image.
+        sample_both_coordinates (bool): If True, the function samples the crop position for both images instead of 
+                                    sampling the position for the first image and using the mapping to get the
+                                    corresponding position in the second image (with some shift). Sampling both
+                                    images can yield in less overlap between the images.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the top-left corner coordinates of the crop in the
@@ -237,18 +242,30 @@ def sample_crop_coordinates(
     crop_position_image_1 = (
         true_indices[random_index, 1].item(),
         true_indices[random_index, 0].item(),
-    )  # The crop position in the original image is the same as the index in the image_coordinate_mapping
-    crop_position_image_2 = coordinate_mapping[
-        true_indices[random_index, 0], true_indices[random_index, 1]
-    ]
+    )  
+    
+    if not sample_both_coordinates:
+        # The crop position in the original image is the same as the index in the image_coordinate_mapping
+        crop_position_image_2 = coordinate_mapping[
+            true_indices[random_index, 0], true_indices[random_index, 1]
+        ]
 
-    # Use max_ranodm_offset to shift the crop position in the transformed image
-    # -> makes sure that top left corner of crop is not always the same
-    crop_position_image_2 += torch.randint(
-        -max_translation_shift, max_translation_shift, (2,), device=coordinate_mapping.device
-    )
+        # Use max_ranodm_offset to shift the crop position in the transformed image
+        # -> makes sure that top left corner of crop is not always the same
+        crop_position_image_2 += torch.randint(
+            -max_translation_shift, max_translation_shift, (2,), device=coordinate_mapping.device
+        )
 
-    return crop_position_image_1, crop_position_image_2.long()
+        return crop_position_image_1, crop_position_image_2.long()
+    
+    else:
+        # Sample another random crop position in the transformed image
+        random_index = torch.randint(0, len(true_indices), (1,)).item()
+        crop_position_image_2 = coordinate_mapping[
+            true_indices[random_index, 0], true_indices[random_index, 1]
+        ]
+
+        return crop_position_image_1, crop_position_image_2.long()
 
 
 def create_crop_coordinate_mapping(

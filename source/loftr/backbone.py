@@ -617,3 +617,171 @@ class ResNetFPN_16_4(nn.Module):
             self.log_tensor_dimensions(tensor_info=tensor_info)
 
         return x4_out, x2_out
+
+class ResNetFPN_32_8(nn.Module):
+
+    def __init__(self, block_dimensions: List[int], verbose: bool = False) -> None:
+        super().__init__()
+        self.verbose = verbose
+
+        initial_dimension = block_dimensions[0]
+        self.conv1 = nn.Conv2d(
+            1,
+            initial_dimension,
+            kernel_size=7,
+            stride=2,
+            padding=3,
+            bias=False,
+        )
+        self.bn1 = nn.BatchNorm2d(initial_dimension)
+        self.relu = nn.ReLU(inplace=True)
+
+        # Downsampling
+        self.layer1 = self._make_layer(
+            initial_dimension, block_dimensions[0], stride=1
+        )  # Output = 1/2
+        self.layer2 = self._make_layer(
+            block_dimensions[0], block_dimensions[1], stride=2
+        )  # Output = 1/4
+        self.layer3 = self._make_layer(
+            block_dimensions[1], block_dimensions[2], stride=2
+        )  # Output = 1/8
+        self.layer4 = self._make_layer(
+            block_dimensions[2], block_dimensions[3], stride=2
+        )  # Output = 1/16
+        self.layer5 = self._make_layer(
+            block_dimensions[3], block_dimensions[4], stride=2
+        )  # Output = 1/32
+
+        self.layer5_outconv = nn.Conv2d(
+            block_dimensions[4],
+            block_dimensions[4],
+            kernel_size=1,
+            stride=1,
+            padding=0,
+            bias=False,
+        )
+
+        self.layer4_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[3],
+                block_dimensions[4],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[4]),
+            nn.LeakyReLU(),
+        )
+
+        self.layer4_outconv2 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[4],
+                block_dimensions[4],
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[4]),
+            nn.LeakyReLU(),
+            nn.Conv2d(
+                block_dimensions[4],
+                block_dimensions[3],
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
+        )
+
+        # Outputs coarse feature space, red in loftr paper
+        self.layer3_outconv1 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[2],
+                block_dimensions[3],
+                kernel_size=1,
+                stride=1,
+                padding=0,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[3]),
+            nn.LeakyReLU(),
+        )
+
+        self.layer3_outconv2 = nn.Sequential(
+            nn.Conv2d(
+                block_dimensions[3],
+                block_dimensions[3],
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
+            nn.BatchNorm2d(block_dimensions[3]),
+            nn.LeakyReLU(),
+            nn.Conv2d(
+                block_dimensions[3],
+                block_dimensions[2],
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False,
+            ),
+        )
+
+    def _make_layer(
+        self, in_channels: int, out_channels: int, stride: int
+    ) -> nn.Sequential:
+        layer1 = BasicBlock(in_channels, out_channels, stride=stride)
+        layer2 = BasicBlock(out_channels, out_channels, stride=1)
+        layers = (layer1, layer2)
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        """
+        Forward pass of the ResNetFPN_16_4 model.
+
+        Processes the input through a series of convolutional layers, batch normalization, and ReLU activations,
+        along with downsampling and upsampling layers to produce feature maps at different scales.
+
+        Args:
+            x (Tensor): Input tensor of shape (n, 1, H, W)
+
+        Returns:
+            tuple[Tensor, Tensor]: A tuple of two tensors. The first tensor (coarse features) is of shape
+            (n, _, H_coarse, W_coarse), and the second tensor (fine features) is of shape
+            (n, _, H_fine, W_fine), where H_coarse and W_coarse are 1/16, and H_fine and W_fine are 1/4
+            of the original dimensions H and W, respectively.
+            Note that _ represents the different number of channels, which is defined by the block_dimensions argument.
+        """
+        # Half image size, upsample channels
+        x0 = self.relu(self.bn1(self.conv1(x)))  # (n, _, H/2, W/2)
+
+        # Downsampling
+        x1 = self.layer1(x0)  # (n, _, H/2, W/2)
+
+        x2 = self.layer2(x1)  # (n, _, H/4, W/4)
+        x3 = self.layer3(x2)  # (n, _, H/8, W/8)
+        x4 = self.layer4(x3)
+        x5 = self.layer5(x4)
+
+        x5_out = self.layer5_outconv(x5)
+        x5_out_2x = F.interpolate(
+            x5_out, scale_factor=2.0, mode="bilinear", align_corners=True
+        )
+
+        x4_out = self.layer4_outconv1(x4)  # (n, _, H/8, W/8)
+        x4_out = self.layer4_outconv2(x4_out + x5_out_2x)
+
+            # Upsample coarse features
+        x4_out_2x = F.interpolate(
+            x4_out, scale_factor=2.0, mode="bilinear", align_corners=True
+        )  # (n, _, H/4, W/4)
+
+        x3_out = self.layer3_outconv1(x3)  # (n, _, H/8, W/8)
+        x3_out = self.layer3_outconv2(x3_out + x4_out_2x)
+
+        return x5_out, x3_out
