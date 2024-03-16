@@ -37,6 +37,44 @@ def plot_images_in_row(images: List[torch.Tensor], figsize=(15, 5)) -> None:
 
     plt.show()
 
+def plot_images_with_keypoint_matches(
+    image_1: torch.Tensor,
+    image_2: torch.Tensor,
+    matches_image_1: torch.Tensor,
+    matches_image_2: torch.Tensor,
+) -> None:
+    """
+    Plots matches between two images based on keypoints specified in two tensors.
+
+    This function concatenates two images side by side and draws lines between
+    matching keypoints as specified in the matches_image_1 and matches_image_2 tensors.
+
+    Args:
+        image_1 (torch.Tensor): The first image tensor of shape [C, H, W].
+        image_2 (torch.Tensor): The second image tensor of the same shape as image_1.
+        matches_image_1 (torch.Tensor): Tensor of shape [N, 2] containing x, y coordinates of N keypoints in image_1.
+        matches_image_2 (torch.Tensor): Tensor of shape [N, 2] containing x, y coordinates of N keypoints in image_2.
+    """
+    # Concatenate the images for side-by-side comparison
+    concatenated_image = torch.cat((image_1, image_2), dim=2).permute(1, 2, 0).numpy()
+    plt.imshow(concatenated_image, cmap="gray")
+
+    number_of_matches = matches_image_1.shape[0]
+    indices = np.arange(number_of_matches)
+
+    width = image_1.shape[2]  # Extract width from image_1 shape
+
+    # Loop over matches
+    for i in indices:
+        x1, y1 = matches_image_1[i]
+        x2, y2 = matches_image_2[i]
+
+        # Draw lines between matches
+        plt.plot([x1, x2 + width], [y1, y2], c="r", linewidth=0.5)
+
+    # Show the plot
+    plt.show()
+
 
 def plot_images_with_matches_via_mapping(
     image_1: torch.Tensor,

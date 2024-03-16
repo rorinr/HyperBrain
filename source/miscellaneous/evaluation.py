@@ -366,10 +366,10 @@ def evaluate_test_image_pair(
     )
 
 
-def read_deformation() -> torch.Tensor:
+def read_deformation_h5_file() -> torch.Tensor:
     # Read deformation
     deformation_path = (
-        r"../../data/cyto_downscaled_3344_3904_evaluation/deformation.pt"
+        r"../../data/cyto_downscaled_3344_3904_evaluation/0524-0525_deformation_low_scale.h5"
     )
     deformation_file = h5py.File(deformation_path, "r")
     deformation = torch.Tensor(np.array(deformation_file["deformation"]) / 10)
