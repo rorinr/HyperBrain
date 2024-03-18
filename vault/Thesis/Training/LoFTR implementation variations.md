@@ -1,0 +1,14 @@
+- Replace the complicated masking step in get_coarse_matches with torch.nonzero with yields in same result
+- masking or no masking
+- What happens when skipping the masking step at test time as well?
+- focal vs dual softmax loss
+- Weight loss of positive patches greater if there are only a few positives in a match
+- 8/2 vs 16/4
+- different kinds of attention
+- soft labels
+- other kind of backbone
+- other dimensions
+- use coarse level features as context in finetuning preprocessing
+- use std in fine loss or not
+- use mutual criteria in ground truth that center pixel of patch i is in path j and also center pixel of patch j in patch i or just one way
+- since it is used softmax for refinement as well one could try nll there instead of l2
